@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { io } from 'socket.io-client';
 import RideCard from './RideCard';
+
+const socket = io('http://localhost:3001');
 
 function App() {
   const [rides, setRides] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const currentUserId = 1;
+  const currentUserId = 251;
 
   const fetchRides = () => {
     fetch('http://localhost:3001/api/rides')
@@ -20,7 +23,28 @@ function App() {
       });
   };
 
-  useEffect(() => { fetchRides(); }, []);
+  useEffect(() => {
+    // Initial fetch
+    fetchRides();
+
+    // Listen for real-time updates pushed from the backend
+    socket.on('rides-update', (payload) => {
+      console.log('Real-time update received:', payload.eventType);
+
+      if (payload.eventType === 'INSERT') {
+        setRides(prev => [...prev, payload.new]);
+      } else if (payload.eventType === 'UPDATE') {
+        setRides(prev => prev.map(ride =>
+          ride.id === payload.new.id ? payload.new : ride
+        ));
+      } else if (payload.eventType === 'DELETE') {
+        setRides(prev => prev.filter(ride => ride.id !== payload.old.id));
+      }
+    });
+
+    // Cleanup on unmount
+    return () => socket.off('rides-update');
+  }, []);
 
   return (
     <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
