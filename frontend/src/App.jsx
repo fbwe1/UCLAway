@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Profile from "./Profile"
 import Feed from "./Feed"
+import BottomNav from "./components/BottomNav"
 import "./App.css"
 
 function App() {
@@ -9,22 +10,7 @@ function App() {
     <div className="app-shell">
       {page === "feed" && <Feed />}
       {page === "profile" && <Profile />}
-
-      <nav className="bottom-nav">
-        <button
-          className={page === "feed" ? "active" : ""}
-          onClick={() => setPage("feed")}
-        >
-          Feed
-        </button>
-
-        <button
-          className={page === "profile" ? "active" : ""}
-          onClick={() => setPage("profile")}
-        >
-          Profile
-        </button>
-      </nav>
+      <BottomNav page={page} setPage={setPage} />
     </div>
   )
 }
