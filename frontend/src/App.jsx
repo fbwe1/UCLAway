@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 import RideCard from './RideCard';
+import PostBoard from './PostBoard';
+import './App.css';
 
 const socket = io('http://localhost:3001');
 
@@ -8,7 +10,7 @@ function App() {
   const [rides, setRides] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const currentUserId = 251; // Simulating as a random ID. In the real app this comes from auth maybe just generate a userID for each user when signing up.
+  const currentUserId = 251;
 
   const fetchRides = () => {
     fetch('http://localhost:3001/api/rides')
@@ -24,10 +26,8 @@ function App() {
   };
 
   useEffect(() => {
-    // Initial fetch
     fetchRides();
 
-    // Listen for real-time updates pushed from the backend
     socket.on('rides-update', (payload) => {
       console.log('Real-time update received:', payload.eventType);
 
@@ -42,7 +42,6 @@ function App() {
       }
     });
 
-    // Cleanup on unmount
     return () => socket.off('rides-update');
   }, []);
 
@@ -65,6 +64,9 @@ function App() {
       ) : (
         <p style={{color: 'red'}}>No rides found.</p>
       )}
+
+      <hr />
+      <PostBoard />
     </div>
   );
 }
