@@ -7,23 +7,61 @@ app.use(cors());
 
 //We need to use a mysql data base for this probably the same one as the passwords. 
 let ridesDB = [
-  { id: 1, pickup_location: "Test_1", destination: "Location 1", total_seats: 4, available_seats: 2, passengers: [99, 100] },
-  { id: 2, pickup_location: "Test_2", destination: "Location 2", total_seats: 3, available_seats: 0, passengers: [10, 11, 12] }
+  {
+    id: 1,
+    pickup_location: "Test_1",
+    destination: "Location 1",
+    date: "2025-05-20",
+    time: "10:00",
+    total_seats: 4,
+    available_seats: 2,
+    passengers: [99, 100]
+  },
+  {
+    id: 2,
+    pickup_location: "Test_2",
+    destination: "Location 2",
+    date: "2025-05-20",
+    time: "14:30",
+    total_seats: 3,
+    available_seats: 0,
+    passengers: [10, 11, 12]
+  },
+  {
+    id: 3,
+    pickup_location: "Westwood",
+    destination: "Santa Monica",
+    date: "2025-05-21",
+    time: "08:00",
+    total_seats: 2,
+    available_seats: 2,
+    passengers: []
+  },
+  {
+    id: 4,
+    pickup_location: "Beverly Hills",
+    destination: "Downtown LA",
+    date: "2025-05-22",
+    time: "16:00",
+    total_seats: 5,
+    available_seats: 1,
+    passengers: [88]
+  }
 ];
 
 //Simulating database time. 
 const simulateDbDelay = (ms = 500) => new Promise(resolve => setTimeout(resolve, ms));
 
-//Get rides from the database with optional location filtering
+//Get rides from the database with optional location/date filtering
 app.get('/api/rides', async (req, res) => {
   try {
     await simulateDbDelay(300); // Fake 300ms database read time
 
     // Get filter parameters from query string
-    const { pickupLocation, destination } = req.query;
+    const { pickupLocation, destination, date, time } = req.query;
 
     // If no filters provided, return all rides
-    if (!pickupLocation && !destination) {
+    if (!pickupLocation && !destination && !date && !time) {
       return res.json(ridesDB);
     }
 
@@ -41,6 +79,19 @@ app.get('/api/rides', async (req, res) => {
       const searchLower = destination.toLowerCase();
       filteredRides = filteredRides.filter(ride =>
         ride.destination.toLowerCase().includes(searchLower)
+      );
+    }
+
+    if (date) {
+      filteredRides = filteredRides.filter(ride =>
+        ride.date === date
+      );
+    }
+
+    if (time) {
+      const searchLower = time.toLowerCase();
+      filteredRides = filteredRides.filter(ride =>
+        ride.time.toLowerCase().includes(searchLower)
       );
     }
 

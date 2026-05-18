@@ -8,6 +8,8 @@ function App() {
   // Filter states
   const [pickupFilter, setPickupFilter] = useState('');
   const [destinationFilter, setDestinationFilter] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
+  const [timeFilter, setTimeFilter] = useState('');
   const [isFilterActive, setIsFilterActive] = useState(false);
 
   //Will be detirmined from the loginin database.
@@ -20,6 +22,8 @@ function App() {
 
     if (filters.pickupLocation) params.append('pickupLocation', filters.pickupLocation);
     if (filters.destination) params.append('destination', filters.destination);
+    if (filters.date) params.append('date', filters.date);
+    if (filters.time) params.append('time', filters.time);
 
     const queryString = params.toString();
     const url = `http://localhost:3001/api/rides${queryString ? '?' + queryString : ''}`;
@@ -46,6 +50,8 @@ function App() {
     const filters = {};
     if (pickupFilter.trim()) filters.pickupLocation = pickupFilter.trim();
     if (destinationFilter.trim()) filters.destination = destinationFilter.trim();
+    if (dateFilter.trim()) filters.date = dateFilter.trim();
+    if (timeFilter.trim()) filters.time = timeFilter.trim();
 
     setIsFilterActive(true);
     fetchRides(filters);
@@ -55,6 +61,8 @@ function App() {
   const clearFilters = () => {
     setPickupFilter('');
     setDestinationFilter('');
+    setDateFilter('');
+    setTimeFilter('');
     setIsFilterActive(false);
     fetchRides(); // Fetch all rides
   };
@@ -102,6 +110,44 @@ function App() {
               value={destinationFilter}
               onChange={(e) => setDestinationFilter(e.target.value)}
               placeholder="Enter destination"
+              style={{
+                width: '100%',
+                padding: '8px',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                boxSizing: 'border-box'
+              }}
+            />
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '10px' }}>
+          <div style={{ flex: 1, minWidth: '200px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+              Date:
+            </label>
+            <input
+              type="date"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                boxSizing: 'border-box'
+              }}
+            />
+          </div>
+
+          <div style={{ flex: 1, minWidth: '200px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+              Time:
+            </label>
+            <input
+              type="time"
+              value={timeFilter}
+              onChange={(e) => setTimeFilter(e.target.value)}
               style={{
                 width: '100%',
                 padding: '8px',
