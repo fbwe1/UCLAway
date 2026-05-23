@@ -5,11 +5,18 @@ const router = express.Router()
 
 // sign up route
 router.post("/signup", async (req, res) => {
-    //todo: use regex to determine it's a ucla email or another simpler method if possible
-    // implemented main logic, but still needs more error handling + bug fixes, maybe login w/ google too
+    //baseline regex email verification step (todo: need another layer of verification)
+    const uclaEmailRegex = /^[A-Za-z0-9._%+-]+@(g\.)?ucla\.edu$/i;
+    // implemented main logic, but still needs more error handling + bug fixes, maybe login w/ google as well
     try{
         //account details
         const {username, ucla_email, password} = req.body;
+        if(!uclaEmailRegex.test(ucla_email)){
+            return res.status(400).json({
+                status:false,
+                message: "Please use a valid UCLA email address"
+            })
+        }
         const { data, error } = await supabase.auth.signUp(
             {
               email: ucla_email,

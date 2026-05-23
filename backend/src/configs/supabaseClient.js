@@ -1,6 +1,5 @@
-const dotenv = require("dotenv");
-dotenv.config();
-//import { createClient } from '@supabase/supabase-js'
+const dotenv = require("dotenv"); 
+dotenv.config(); //need to load env vars in (before: kept running into errors with "invalid URL")
 const { createClient } = require('@supabase/supabase-js');
 const supabase_url = process.env.SUPABASE_URL;
 const anon_key = process.env.SUPABASE_SERVICE_ROLE_KEY;
