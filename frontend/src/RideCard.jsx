@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 const RideCard = ({ ride, currentUserId, onUpdate }) => {
   const [loading, setLoading] = useState(false);
@@ -31,7 +31,7 @@ const RideCard = ({ ride, currentUserId, onUpdate }) => {
         onUpdate();
       }
 
-    } catch (err) {
+    } catch {
       setErrorMsg("Failed to connect to the backend server.");
     } finally {
       setLoading(false);
@@ -58,7 +58,7 @@ const RideCard = ({ ride, currentUserId, onUpdate }) => {
         onUpdate();
       }
 
-    } catch (err) {
+    } catch {
       setErrorMsg("Failed to connect to the backend server.");
     } finally {
       setRemoving(false);
@@ -75,6 +75,12 @@ const RideCard = ({ ride, currentUserId, onUpdate }) => {
   // Format timestamp
   const formattedDate = ride.created_at
     ? new Date(ride.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+    : null;
+  const formattedRideDate = ride.ride_date
+    ? new Date(`${ride.ride_date}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    : null;
+  const formattedRideTime = ride.ride_time
+    ? ride.ride_time.slice(0, 5)
     : null;
 
   return (
@@ -101,6 +107,12 @@ const RideCard = ({ ride, currentUserId, onUpdate }) => {
       <p style={{ color: '#888', fontSize: '13px', margin: '4px 0' }}>
          {ride.pickup_location} to {ride.destination}
       </p>
+
+      {(formattedRideDate || formattedRideTime) && (
+        <p style={{ color: '#555', fontSize: '13px', margin: '4px 0' }}>
+          <strong>When:</strong> {[formattedRideDate, formattedRideTime].filter(Boolean).join(' at ')}
+        </p>
+      )}
 
       {/* Description */}
       {ride.description && (

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 function CreateRide({ currentUserId }) {
@@ -7,6 +7,8 @@ function CreateRide({ currentUserId }) {
   const [description, setDescription] = useState('');
   const [pickupLocation, setPickupLocation] = useState('');
   const [destination, setDestination] = useState('');
+  const [rideDate, setRideDate] = useState('');
+  const [rideTime, setRideTime] = useState('');
   const [totalSeats, setTotalSeats] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -25,6 +27,8 @@ function CreateRide({ currentUserId }) {
           description,
           pickup_location: pickupLocation,
           destination,
+          ride_date: rideDate,
+          ride_time: rideTime,
           total_seats: parseInt(totalSeats),
           creator_user_id: currentUserId
         })
@@ -38,7 +42,7 @@ function CreateRide({ currentUserId }) {
         navigate('/');
       }
 
-    } catch (err) {
+    } catch {
       setErrorMsg('Failed to connect to the backend server.');
     } finally {
       setLoading(false);
@@ -98,6 +102,30 @@ function CreateRide({ currentUserId }) {
             placeholder="e.g. LAX"
             style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}
           />
+        </div>
+
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '12px', flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: '160px' }}>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>Date</label>
+            <input
+              type="date"
+              value={rideDate}
+              onChange={e => setRideDate(e.target.value)}
+              required
+              style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+            />
+          </div>
+
+          <div style={{ flex: 1, minWidth: '160px' }}>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>Time</label>
+            <input
+              type="time"
+              value={rideTime}
+              onChange={e => setRideTime(e.target.value)}
+              required
+              style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+            />
+          </div>
         </div>
 
         <div style={{ marginBottom: '12px' }}>

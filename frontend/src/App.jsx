@@ -1,4 +1,3 @@
-import React from 'react';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import RideFeed from './pages/RideFeed';
 import CreateRide from './pages/CreateRide';

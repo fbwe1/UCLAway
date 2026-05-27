@@ -2,13 +2,40 @@ const express = require('express');
 const router = express.Router();
 const supabase = require('../supabaseClient');
 
-// GET all rides
+// GET all rides with optional filters
 router.get('/', async (req, res) => {
   try {
-    const { data: rides, error } = await supabase
+    const { pickupLocation, destination, rideDate, rideTime, minSeats } = req.query;
+    let query = supabase
       .from('rides')
       .select('*')
       .order('created_at', { ascending: false });
+
+    if (pickupLocation) {
+      query = query.ilike('pickup_location', `%${pickupLocation}%`);
+    }
+
+    if (destination) {
+      query = query.ilike('destination', `%${destination}%`);
+    }
+
+    if (rideDate) {
+      query = query.eq('ride_date', rideDate);
+    }
+
+    if (rideTime) {
+      query = query.eq('ride_time', rideTime);
+    }
+
+    if (minSeats) {
+      const minSeatsNumber = parseInt(minSeats, 10);
+      if (Number.isNaN(minSeatsNumber) || minSeatsNumber < 0) {
+        return res.status(400).json({ error: "minSeats must be a non-negative number" });
+      }
+      query = query.gte('available_seats', minSeatsNumber);
+    }
+
+    const { data: rides, error } = await query;
 
     if (error) {
       console.error("SUPABASE ERROR DETAILS:", error.message, error.details, error.hint);
@@ -23,10 +50,10 @@ router.get('/', async (req, res) => {
 // POST create a ride
 router.post('/', async (req, res) => {
   try {
-    const { title, description, pickup_location, destination, total_seats, creator_user_id } = req.body;
+    const { title, description, pickup_location, destination, ride_date, ride_time, total_seats, creator_user_id } = req.body;
 
-    if (!title || !pickup_location || !destination || !total_seats || !creator_user_id) {
-      return res.status(400).json({ error: "title, pickup_location, destination, total_seats and creator_user_id are required" });
+    if (!title || !pickup_location || !destination || !ride_date || !ride_time || !total_seats || !creator_user_id) {
+      return res.status(400).json({ error: "title, pickup_location, destination, ride_date, ride_time, total_seats and creator_user_id are required" });
     }
 
     const { data, error } = await supabase
@@ -36,6 +63,8 @@ router.post('/', async (req, res) => {
         description: description || null,
         pickup_location,
         destination,
+        ride_date,
+        ride_time,
         total_seats: parseInt(total_seats),
         available_seats: parseInt(total_seats) - 1,
         passengers: [],
