@@ -11,6 +11,7 @@ const io = new Server(server, { cors: { origin: '*' } });
 
 app.use(express.json());
 app.use(cors());
+app.set('io', io);
 
 // Real-time Supabase listener
 supabase
@@ -26,9 +27,7 @@ supabase
 
 // Routes
 const rideRoutes = require('./routes/rides');
-//const postRoutes = require('./routes/posts');
 app.use('/api/rides', rideRoutes);
-//app.use('/posts', postRoutes);
 
 const PORT = 3001;
 server.listen(PORT, () => {
