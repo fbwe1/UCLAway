@@ -1,19 +1,25 @@
-function BottomNav({ page, setPage }) {
+import { NavLink } from "react-router-dom"
+
+function BottomNav() {
   return (
     <nav className="bottom-nav">
-      <button
-        className={page === "feed" ? "active" : ""}
-        onClick={() => setPage("feed")}
-      >
+      <NavLink to="/" className={({ isActive }) => (isActive ? "active" : "")}>
         Feed
-      </button>
+      </NavLink>
 
-      <button
-        className={page === "profile" ? "active" : ""}
-        onClick={() => setPage("profile")}
+      <NavLink
+        to="/create"
+        className={({ isActive }) => (isActive ? "active" : "")}
+      >
+        Create
+      </NavLink>
+
+      <NavLink
+        to="/profile"
+        className={({ isActive }) => (isActive ? "active" : "")}
       >
         Profile
-      </button>
+      </NavLink>
     </nav>
   )
 }
