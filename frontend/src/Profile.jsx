@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react"
+import RideCard from "./components/RideCard"
 
 export default function Profile({ currentUserId }) {
   const [rides, setRides] = useState([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
+  const fetchRides = () => {
+    setLoading(true)
+
     fetch("http://localhost:3001/api/rides")
       .then((res) => res.json())
       .then((data) => {
@@ -15,15 +18,19 @@ export default function Profile({ currentUserId }) {
         console.error("Error fetching profile rides:", err)
         setLoading(false)
       })
+  }
+
+  useEffect(() => {
+    fetchRides()
   }, [])
 
-  const createdRides = rides.filter(
-    (ride) => ride.creator_user_id === currentUserId
-  )
+  const createdRides = rides
+    .filter((ride) => ride.creator_user_id === currentUserId)
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
 
-  const joinedRides = rides.filter((ride) =>
-    ride.passengers?.includes(currentUserId)
-  )
+  const joinedRides = rides
+    .filter((ride) => ride.passengers?.includes(currentUserId))
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
 
   const totalRides = createdRides.length + joinedRides.length
 
@@ -62,29 +69,12 @@ export default function Profile({ currentUserId }) {
           <p className="empty-message">Loading rides...</p>
         ) : joinedRides.length > 0 ? (
           joinedRides.map((ride) => (
-            <article className="post-card" key={ride.id}>
-              <div className="post-top">
-                <div>
-                  <h2>
-                    {ride.title ||
-                      `${ride.pickup_location} → ${ride.destination}`}
-                  </h2>
-                  <p className="muted">
-                    {ride.pickup_location} → {ride.destination}
-                  </p>
-                </div>
-
-                <span className={ride.available_seats <= 0 ? "status full" : "status open"}>
-                  {ride.available_seats <= 0
-                    ? "Full"
-                    : `Missing ${ride.available_seats}`}
-                </span>
-              </div>
-
-              {ride.description && (
-                <p className="post-note">{ride.description}</p>
-              )}
-            </article>
+            <RideCard
+              key={ride.id}
+              ride={ride}
+              currentUserId={currentUserId}
+              onUpdate={fetchRides}
+            />
           ))
         ) : (
           <p className="empty-message">You have not joined any rides yet.</p>
@@ -98,36 +88,17 @@ export default function Profile({ currentUserId }) {
           <p className="empty-message">Loading rides...</p>
         ) : createdRides.length > 0 ? (
           createdRides.map((ride) => (
-            <article className="post-card" key={ride.id}>
-              <div className="post-top">
-                <div>
-                  <h2>
-                    {ride.title ||
-                      `${ride.pickup_location} → ${ride.destination}`}
-                  </h2>
-                  <p className="muted">
-                    {ride.pickup_location} → {ride.destination}
-                  </p>
-                </div>
-
-                <span className={ride.available_seats <= 0 ? "status full" : "status open"}>
-                  {ride.available_seats <= 0
-                    ? "Full"
-                    : `Missing ${ride.available_seats}`}
-                </span>
-              </div>
-
-              {ride.description && (
-                <p className="post-note">{ride.description}</p>
-              )}
-            </article>
+            <RideCard
+              key={ride.id}
+              ride={ride}
+              currentUserId={currentUserId}
+              onUpdate={fetchRides}
+            />
           ))
         ) : (
           <p className="empty-message">You have not created any rides yet.</p>
         )}
       </section>
-
-      
     </main>
   )
 }
