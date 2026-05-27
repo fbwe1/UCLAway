@@ -156,7 +156,7 @@ const RideCard = ({ ride, currentUserId, onUpdate, socket }) => {
         fontSize: '11px',
         marginBottom: '6px'
       }}>
-        {ride.is_round_trip ? '🔄 Round Trip' : '➡️ One Way'}
+        {ride.is_round_trip ? 'Round Trip' : 'One Way'}
       </span>
 
       {/* Description */}
