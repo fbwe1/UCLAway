@@ -31,6 +31,7 @@ function RideFeed({ currentUserId }) {
   const [minSeatsFilter, setMinSeatsFilter] = useState("")
   const [roundTripFilter, setRoundTripFilter] = useState("")
   const [activeFilters, setActiveFilters] = useState({})
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
 
   const activeFiltersRef = useRef(activeFilters)
   const hasActiveFilters = Object.keys(activeFilters).length > 0
@@ -132,56 +133,92 @@ function RideFeed({ currentUserId }) {
       <section className="feed-controls">
         <input
           type="text"
-          placeholder="Search pickup, destination, or title..."
+          placeholder="Search pickup, destination, title, or description..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-      </section>
 
-      <section className="feed-controls filter-controls">
-        <input
-          type="text"
-          placeholder="Pickup location"
-          value={pickupFilter}
-          onChange={(e) => setPickupFilter(e.target.value)}
-        />
-
-        <input
-          type="text"
-          placeholder="Destination"
-          value={destinationFilter}
-          onChange={(e) => setDestinationFilter(e.target.value)}
-        />
-
-        <input
-          type="date"
-          value={departureDateFilter}
-          onChange={(e) => setDepartureDateFilter(e.target.value)}
-        />
-
-        <input
-          type="number"
-          min="0"
-          placeholder="Min seats"
-          value={minSeatsFilter}
-          onChange={(e) => setMinSeatsFilter(e.target.value)}
-        />
-
-        <select
-          value={roundTripFilter}
-          onChange={(e) => setRoundTripFilter(e.target.value)}
+        <button
+          type="button"
+          className="secondary-button"
+          onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
         >
-          <option value="">Any trip</option>
-          <option value="false">One way</option>
-          <option value="true">Round trip</option>
-        </select>
-
-        <button onClick={applyFilters}>Apply Filters</button>
-
-        {hasActiveFilters && (
-          <button onClick={clearFilters}>Clear Filters</button>
-        )}
+          {showAdvancedFilters ? "Hide Advanced Search" : "Advanced Search"}
+        </button>
       </section>
+
+      {hasActiveFilters && !showAdvancedFilters && (
+        <section className="feed-controls">
+          <p className="empty-message">Advanced filters are currently active.</p>
+
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={clearFilters}
+          >
+            Clear Filters
+          </button>
+        </section>
+      )}
+
+      {showAdvancedFilters && (
+        <section className="feed-controls filter-controls">
+          <input
+            type="text"
+            placeholder="Pickup location"
+            value={pickupFilter}
+            onChange={(e) => setPickupFilter(e.target.value)}
+          />
+
+          <input
+            type="text"
+            placeholder="Destination"
+            value={destinationFilter}
+            onChange={(e) => setDestinationFilter(e.target.value)}
+          />
+
+          <input
+            type="date"
+            value={departureDateFilter}
+            onChange={(e) => setDepartureDateFilter(e.target.value)}
+          />
+
+          <input
+            type="number"
+            min="0"
+            placeholder="Minimum seats"
+            value={minSeatsFilter}
+            onChange={(e) => setMinSeatsFilter(e.target.value)}
+          />
+
+          <select
+            value={roundTripFilter}
+            onChange={(e) => setRoundTripFilter(e.target.value)}
+          >
+            <option value="">Any trip</option>
+            <option value="false">One way</option>
+            <option value="true">Round trip</option>
+          </select>
+
+          <button
+            type="button"
+            className="primary-button"
+            onClick={applyFilters}
+          >
+            Apply Filters
+          </button>
+
+          {hasActiveFilters && (
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={clearFilters}
+            >
+              Clear Filters
+            </button>
+          )}
+        </section>
+      )}
 
       {hasActiveFilters && (
         <p className="empty-message">
@@ -199,12 +236,13 @@ function RideFeed({ currentUserId }) {
               ride={ride}
               currentUserId={currentUserId}
               onUpdate={fetchRides}
-              socket={socket}
             />
           ))
         ) : (
           <p className="empty-message">
-            {hasActiveFilters ? "No rides found matching your filters." : "No rides found."}
+            {hasActiveFilters
+              ? "No rides found matching your filters."
+              : "No rides found."}
           </p>
         )}
       </section>

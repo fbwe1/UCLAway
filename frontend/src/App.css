@@ -90,6 +90,24 @@ textarea {
   border-color: #2563eb;
 }
 
+.filter-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.filter-controls button,
+.filter-controls select,
+.filter-controls input {
+  width: 100%;
+}
+
+@media (max-width: 600px) {
+  .filter-controls {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Ride list */
 .post-list {
   display: flex;
@@ -173,6 +191,61 @@ textarea {
   color: #6b7280;
   font-size: 13px;
   margin: 8px 0;
+}
+
+.card-badges {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.trip-badge {
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.passenger-list {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.passenger-list-title {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #374151;
+}
+
+.passenger-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.small-danger-button {
+  border: none;
+  border-radius: 10px;
+  padding: 6px 10px;
+  background: #7f1d1d;
+  color: white;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.small-danger-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* Buttons */
