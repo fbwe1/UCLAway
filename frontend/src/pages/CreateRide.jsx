@@ -7,9 +7,10 @@ function CreateRide({ currentUserId }) {
   const [description, setDescription] = useState('');
   const [pickupLocation, setPickupLocation] = useState('');
   const [destination, setDestination] = useState('');
-  const [rideDate, setRideDate] = useState('');
-  const [rideTime, setRideTime] = useState('');
   const [totalSeats, setTotalSeats] = useState('');
+  const [departureTime, setDepartureTime] = useState('');
+  const [isRoundTrip, setIsRoundTrip] = useState(false);
+  const [returnTime, setReturnTime] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -17,6 +18,14 @@ function CreateRide({ currentUserId }) {
     e.preventDefault();
     setLoading(true);
     setErrorMsg('');
+
+    if (isRoundTrip && returnTime && departureTime) {
+      if (new Date(returnTime) <= new Date(departureTime)) {
+        setErrorMsg('Return time must be after departure time');
+        setLoading(false);
+        return;
+      }
+    }
 
     try {
       const response = await fetch('http://localhost:3001/api/rides', {
@@ -27,10 +36,11 @@ function CreateRide({ currentUserId }) {
           description,
           pickup_location: pickupLocation,
           destination,
-          ride_date: rideDate,
-          ride_time: rideTime,
           total_seats: parseInt(totalSeats),
-          creator_user_id: currentUserId
+          creator_user_id: currentUserId,
+          departure_time: new Date(departureTime).toISOString(),
+          is_round_trip: isRoundTrip,
+          return_time: isRoundTrip ? new Date(returnTime).toISOString() : null
         })
       });
 
@@ -48,6 +58,8 @@ function CreateRide({ currentUserId }) {
       setLoading(false);
     }
   };
+
+  const now = new Date().toISOString().slice(0, 16);
 
   return (
     <div style={{ maxWidth: '400px', margin: '0 auto' }}>
@@ -70,7 +82,9 @@ function CreateRide({ currentUserId }) {
         </div>
 
         <div style={{ marginBottom: '12px' }}>
-          <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>Description <span style={{ color: '#888', fontWeight: 'normal' }}>(optional)</span></label>
+          <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>
+            Description <span style={{ color: '#888', fontWeight: 'normal' }}>(optional)</span>
+          </label>
           <textarea
             value={description}
             onChange={e => setDescription(e.target.value)}
@@ -104,30 +118,6 @@ function CreateRide({ currentUserId }) {
           />
         </div>
 
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '12px', flexWrap: 'wrap' }}>
-          <div style={{ flex: 1, minWidth: '160px' }}>
-            <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>Date</label>
-            <input
-              type="date"
-              value={rideDate}
-              onChange={e => setRideDate(e.target.value)}
-              required
-              style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}
-            />
-          </div>
-
-          <div style={{ flex: 1, minWidth: '160px' }}>
-            <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>Time</label>
-            <input
-              type="time"
-              value={rideTime}
-              onChange={e => setRideTime(e.target.value)}
-              required
-              style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}
-            />
-          </div>
-        </div>
-
         <div style={{ marginBottom: '12px' }}>
           <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>Total Seats (including yourself)</label>
           <input
@@ -141,6 +131,43 @@ function CreateRide({ currentUserId }) {
             style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}
           />
         </div>
+
+        <div style={{ marginBottom: '12px' }}>
+          <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>Departure Time</label>
+          <input
+            type="datetime-local"
+            value={departureTime}
+            onChange={e => setDepartureTime(e.target.value)}
+            required
+            min={now}
+            style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+          />
+        </div>
+
+        <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <input
+            type="checkbox"
+            id="roundTrip"
+            checked={isRoundTrip}
+            onChange={e => setIsRoundTrip(e.target.checked)}
+            style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+          />
+          <label htmlFor="roundTrip" style={{ fontWeight: 'bold', cursor: 'pointer' }}>Round Trip</label>
+        </div>
+
+        {isRoundTrip && (
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>Return Time</label>
+            <input
+              type="datetime-local"
+              value={returnTime}
+              onChange={e => setReturnTime(e.target.value)}
+              required={isRoundTrip}
+              min={departureTime || now}
+              style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+            />
+          </div>
+        )}
 
         <button
           type="submit"

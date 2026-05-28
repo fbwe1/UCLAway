@@ -9,9 +9,12 @@ const buildRidesUrl = (filters = {}) => {
 
   if (filters.pickupLocation) params.append('pickupLocation', filters.pickupLocation);
   if (filters.destination) params.append('destination', filters.destination);
-  if (filters.rideDate) params.append('rideDate', filters.rideDate);
-  if (filters.rideTime) params.append('rideTime', filters.rideTime);
+  if (filters.departureDate) params.append('departureDate', filters.departureDate);
   if (filters.minSeats) params.append('minSeats', filters.minSeats);
+  // isRoundTrip: only append if explicitly set (true or false)
+  if (filters.isRoundTrip !== undefined && filters.isRoundTrip !== '') {
+    params.append('isRoundTrip', filters.isRoundTrip);
+  }
 
   const queryString = params.toString();
   return `http://localhost:3001/api/rides${queryString ? `?${queryString}` : ''}`;
@@ -22,9 +25,9 @@ function RideFeed({ currentUserId }) {
   const [loading, setLoading] = useState(true);
   const [pickupFilter, setPickupFilter] = useState('');
   const [destinationFilter, setDestinationFilter] = useState('');
-  const [dateFilter, setDateFilter] = useState('');
-  const [timeFilter, setTimeFilter] = useState('');
+  const [departureDateFilter, setDepartureDateFilter] = useState('');
   const [minSeatsFilter, setMinSeatsFilter] = useState('');
+  const [roundTripFilter, setRoundTripFilter] = useState(''); // '' = any, 'true' = round trip, 'false' = one way
   const [activeFilters, setActiveFilters] = useState({});
   const activeFiltersRef = useRef(activeFilters);
 
@@ -32,7 +35,6 @@ function RideFeed({ currentUserId }) {
 
   const fetchRides = (filters = activeFilters) => {
     setLoading(true);
-
     fetch(buildRidesUrl(filters))
       .then(res => res.json())
       .then(data => {
@@ -50,16 +52,7 @@ function RideFeed({ currentUserId }) {
   }, [activeFilters]);
 
   useEffect(() => {
-    fetch(buildRidesUrl())
-      .then(res => res.json())
-      .then(data => {
-        setRides(Array.isArray(data) ? data : []);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error("Error fetching rides:", err);
-        setLoading(false);
-      });
+    fetchRides({});
 
     socket.on('rides-update', (payload) => {
       console.log('Real-time update received:', payload.eventType);
@@ -67,16 +60,7 @@ function RideFeed({ currentUserId }) {
       const filtersAreActive = Object.keys(currentFilters).length > 0;
 
       if (filtersAreActive || payload.eventType === 'INSERT') {
-        fetch(buildRidesUrl(currentFilters))
-          .then(res => res.json())
-          .then(data => {
-            setRides(Array.isArray(data) ? data : []);
-            setLoading(false);
-          })
-          .catch(err => {
-            console.error("Error fetching rides:", err);
-            setLoading(false);
-          });
+        fetchRides(currentFilters);
       } else if (payload.eventType === 'UPDATE') {
         setRides(prev => prev.map(ride =>
           ride.id === payload.new.id ? payload.new : ride
@@ -91,12 +75,11 @@ function RideFeed({ currentUserId }) {
 
   const applyFilters = () => {
     const filters = {};
-
     if (pickupFilter.trim()) filters.pickupLocation = pickupFilter.trim();
     if (destinationFilter.trim()) filters.destination = destinationFilter.trim();
-    if (dateFilter) filters.rideDate = dateFilter;
-    if (timeFilter) filters.rideTime = timeFilter;
+    if (departureDateFilter) filters.departureDate = departureDateFilter;
     if (minSeatsFilter.trim()) filters.minSeats = minSeatsFilter.trim();
+    if (roundTripFilter !== '') filters.isRoundTrip = roundTripFilter;
 
     setActiveFilters(filters);
     fetchRides(filters);
@@ -105,9 +88,9 @@ function RideFeed({ currentUserId }) {
   const clearFilters = () => {
     setPickupFilter('');
     setDestinationFilter('');
-    setDateFilter('');
-    setTimeFilter('');
+    setDepartureDateFilter('');
     setMinSeatsFilter('');
+    setRoundTripFilter('');
     setActiveFilters({});
     fetchRides({});
   };
@@ -124,10 +107,9 @@ function RideFeed({ currentUserId }) {
       }}>
         <h3 style={{ marginTop: 0 }}>Find Rides</h3>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+
           <div style={{ flex: 1, minWidth: '180px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-              Pickup Location
-            </label>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Pickup Location</label>
             <input
               type="text"
               value={pickupFilter}
@@ -138,9 +120,7 @@ function RideFeed({ currentUserId }) {
           </div>
 
           <div style={{ flex: 1, minWidth: '180px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-              Destination
-            </label>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Destination</label>
             <input
               type="text"
               value={destinationFilter}
@@ -151,33 +131,17 @@ function RideFeed({ currentUserId }) {
           </div>
 
           <div style={{ flex: 1, minWidth: '160px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-              Date
-            </label>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Departure Date</label>
             <input
               type="date"
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
+              value={departureDateFilter}
+              onChange={(e) => setDepartureDateFilter(e.target.value)}
               style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px', boxSizing: 'border-box' }}
             />
           </div>
 
           <div style={{ flex: 1, minWidth: '160px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-              Time
-            </label>
-            <input
-              type="time"
-              value={timeFilter}
-              onChange={(e) => setTimeFilter(e.target.value)}
-              style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px', boxSizing: 'border-box' }}
-            />
-          </div>
-
-          <div style={{ flex: 1, minWidth: '160px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-              Minimum Seats
-            </label>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Minimum Seats</label>
             <input
               type="number"
               value={minSeatsFilter}
@@ -187,6 +151,21 @@ function RideFeed({ currentUserId }) {
               style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px', boxSizing: 'border-box' }}
             />
           </div>
+
+          {/* Round trip filter */}
+          <div style={{ flex: 1, minWidth: '160px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Trip Type</label>
+            <select
+              value={roundTripFilter}
+              onChange={(e) => setRoundTripFilter(e.target.value)}
+              style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px', boxSizing: 'border-box' }}
+            >
+              <option value="">Any</option>
+              <option value="false">One Way</option>
+              <option value="true">Round Trip</option>
+            </select>
+          </div>
+
         </div>
 
         <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
@@ -232,13 +211,14 @@ function RideFeed({ currentUserId }) {
 
       {loading ? (
         <p>Loading...</p>
-      ) : rides.length > 0 ? (
-        rides.map(ride => (
+      ) : rides.filter(ride => ride && ride.id).length > 0 ? (
+        rides.filter(ride => ride && ride.id).map(ride => (
           <RideCard
             key={ride.id}
             ride={ride}
             currentUserId={currentUserId}
             onUpdate={fetchRides}
+            socket={socket}
           />
         ))
       ) : (
