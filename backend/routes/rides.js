@@ -2,13 +2,46 @@ const express = require('express');
 const router = express.Router();
 const supabase = require('../supabaseClient');
 
-// GET all rides
+// GET all rides with optional filters
 router.get('/', async (req, res) => {
   try {
-    const { data: rides, error } = await supabase
+    const { pickupLocation, destination, departureDate, minSeats, isRoundTrip } = req.query;
+
+    let query = supabase
       .from('rides')
       .select('*')
       .order('created_at', { ascending: false });
+
+    if (pickupLocation) {
+      query = query.ilike('pickup_location', `%${pickupLocation}%`);
+    }
+
+    if (destination) {
+      query = query.ilike('destination', `%${destination}%`);
+    }
+
+    // Filter by departure date — matches any ride departing on that day (LA timezone)
+    if (departureDate) {
+      // Convert the date to a UTC range covering the full LA day
+      const startOfDay = new Date(`${departureDate}T00:00:00-07:00`).toISOString();
+      const endOfDay = new Date(`${departureDate}T23:59:59-07:00`).toISOString();
+      query = query.gte('departure_time', startOfDay).lte('departure_time', endOfDay);
+    }
+
+    if (minSeats) {
+      const minSeatsNumber = parseInt(minSeats, 10);
+      if (Number.isNaN(minSeatsNumber) || minSeatsNumber < 0) {
+        return res.status(400).json({ error: "minSeats must be a non-negative number" });
+      }
+      query = query.gte('available_seats', minSeatsNumber);
+    }
+
+    // Filter by trip type — 'true' for round trip, 'false' for one way
+    if (isRoundTrip !== undefined && isRoundTrip !== '') {
+      query = query.eq('is_round_trip', isRoundTrip === 'true');
+    }
+
+    const { data: rides, error } = await query;
 
     if (error) {
       console.error("SUPABASE ERROR DETAILS:", error.message, error.details, error.hint);
@@ -23,10 +56,24 @@ router.get('/', async (req, res) => {
 // POST create a ride
 router.post('/', async (req, res) => {
   try {
-    const { title, description, pickup_location, destination, total_seats, creator_user_id } = req.body;
+    const {
+      title, description, pickup_location, destination,
+      total_seats, creator_user_id, departure_time,
+      is_round_trip, return_time
+    } = req.body;
 
-    if (!title || !pickup_location || !destination || !total_seats || !creator_user_id) {
-      return res.status(400).json({ error: "title, pickup_location, destination, total_seats and creator_user_id are required" });
+    if (!title || !pickup_location || !destination || !total_seats || !creator_user_id || !departure_time) {
+      return res.status(400).json({ error: "title, pickup_location, destination, total_seats, creator_user_id and departure_time are required" });
+    }
+
+    if (new Date(departure_time) <= new Date()) {
+      return res.status(400).json({ error: "Departure time must be in the future" });
+    }
+
+    if (is_round_trip && return_time) {
+      if (new Date(return_time) <= new Date(departure_time)) {
+        return res.status(400).json({ error: "Return time must be after departure time" });
+      }
     }
 
     const { data, error } = await supabase
@@ -39,7 +86,11 @@ router.post('/', async (req, res) => {
         total_seats: parseInt(total_seats),
         available_seats: parseInt(total_seats) - 1,
         passengers: [],
-        creator_user_id: parseInt(creator_user_id)
+        removed_passengers: [],
+        creator_user_id: parseInt(creator_user_id),
+        departure_time,
+        is_round_trip: is_round_trip || false,
+        return_time: is_round_trip ? return_time : null
       })
       .select()
       .single();
@@ -61,13 +112,19 @@ router.post('/:rideId/join', async (req, res) => {
 
     const { data: ride, error: fetchError } = await supabase
       .from('rides')
-      .select('creator_user_id')
+      .select('creator_user_id, departure_time, removed_passengers')
       .eq('id', rideId)
       .single();
 
     if (fetchError || !ride) return res.status(404).json({ error: "Ride not found" });
     if (ride.creator_user_id === userIdInt) {
       return res.status(400).json({ error: "You cannot join your own ride" });
+    }
+    if (new Date(ride.departure_time) <= new Date()) {
+      return res.status(400).json({ error: "This ride has already departed" });
+    }
+    if (ride.removed_passengers && ride.removed_passengers.includes(userIdInt)) {
+      return res.status(403).json({ error: "You have been removed from this ride by the creator" });
     }
 
     const { data, error } = await supabase.rpc('join_ride', {
@@ -146,13 +203,22 @@ router.post('/:rideId/remove-rider', async (req, res) => {
 
     const updatedPassengers = ride.passengers.filter(id => id !== riderIdInt);
     const updatedSeats = ride.available_seats + 1;
+    const updatedRemovedPassengers = [...(ride.removed_passengers || []), riderIdInt];
 
     const { error: updateError } = await supabase
       .from('rides')
-      .update({ available_seats: updatedSeats, passengers: updatedPassengers })
+      .update({
+        available_seats: updatedSeats,
+        passengers: updatedPassengers,
+        removed_passengers: updatedRemovedPassengers
+      })
       .eq('id', rideId);
 
     if (updateError) throw updateError;
+
+    const io = req.app.get('io');
+    io.emit('rider-removed', { rideId, riderId: riderIdInt });
+
     res.json({ success: true });
   } catch (error) {
     console.error(error);
