@@ -6,15 +6,13 @@ export default function Signup() {
     //json structure to send to backend
     //user data (tentative, just for testing)
     const [userData, setuserData] = useState({ 
-        email: "",
+        username: "",
+        ucla_email: "",
         password: "",
-        options:{
-            data:{
-                first_name: "",
-            }
-        }
     }
     )
+    const [message, setMessage] = useState("");
+
     async function handleData(e){
         e.preventDefault();
         //don't execute until click signup, then send usr credentials to auth routes
@@ -30,8 +28,10 @@ export default function Signup() {
             const data = await res.json();
 
             console.log("Backend response:", data);
+            setMessage(data.message || "Signup complete.");
         } catch (error) {
             console.error("signup req failed:", error);
+            setMessage("Could not connect to the server.");
         }
     }
     return (
@@ -39,22 +39,11 @@ export default function Signup() {
             <form onSubmit={handleData}>
             <div className="input">
                     UCLA Email: <input type="text" placeholder="UCLA-affiliated email"
-                    onChange={e => setuserData({...userData, email: e.target.value})}/>
+                    onChange={e => setuserData({...userData, ucla_email: e.target.value})}/>
                 </div>
                 <div className="input">
                     Username: <input type="text" placeholder="Username" 
-                    onChange={e =>
-                        setuserData({
-                          ...userData,
-                          options: {
-                            ...userData.options,
-                            data: {
-                              ...userData.options.data,
-                              first_name: e.target.value
-                            }
-                          }
-                        })
-                      }/>
+                    onChange={e => setuserData({...userData, username: e.target.value})}/>
                 </div>
                 <div className="input">
                 Password: <input type="password" placeholder="Password"
@@ -63,6 +52,7 @@ export default function Signup() {
                 <button type="submit" className="signin-container button">
                     Signup
                 </button>
+                {message && <p className="auth-message">{message}</p>}
             </form>
         </div>
     )

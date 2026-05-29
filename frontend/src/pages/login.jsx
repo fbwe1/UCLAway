@@ -2,15 +2,37 @@ import React from 'react'
 import '../App.css'
 import { useState } from 'react'
 
-export default function Login({ onCreateAccount }) {
+export default function Login({ onCreateAccount, onLogin }) {
     const [loginData, setLoginData] = useState({
         ucla_email: "",
         password: ""
     })
+    const [message, setMessage] = useState("");
 
-    function handleLogin(e) {
+    async function handleLogin(e) {
         e.preventDefault();
-        console.log("Login credentials entered:", loginData);
+
+        try {
+            const res = await fetch("http://localhost:3001/auth/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(loginData),
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                setMessage("Login successful!");
+                onLogin(loginData.ucla_email);
+            } else {
+                setMessage(data.message || "Login failed. Please try again.");
+            }
+        } catch (error) {
+            console.error("login req failed:", error);
+            setMessage("Could not connect to the server.");
+        }
     }
 
     return (
@@ -30,6 +52,7 @@ export default function Login({ onCreateAccount }) {
                 <button type="button" className="signin-container button" onClick={onCreateAccount}>
                     Not registered? Create an account!
                 </button>
+                {message && <p className="auth-message">{message}</p>}
             </form>
         </div>
     )
