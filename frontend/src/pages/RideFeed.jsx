@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import RideCard from '../RideCard';
+import { io } from 'socket.io-client';
+import RideCard from '../components/RideCard';
 
-// Socket is now passed in from App.jsx so there's only one connection app-wide
+// Socket is passed in from App.jsx — only used if provided, falls back to local
+// TODO: remove local socket creation once all pages receive socket from App.jsx
 const buildRidesUrl = (filters = {}) => {
   const params = new URLSearchParams();
 
@@ -9,7 +11,6 @@ const buildRidesUrl = (filters = {}) => {
   if (filters.destination) params.append('destination', filters.destination);
   if (filters.departureDate) params.append('departureDate', filters.departureDate);
   if (filters.minSeats) params.append('minSeats', filters.minSeats);
-  // isRoundTrip: only append if explicitly set (true or false)
   if (filters.isRoundTrip !== undefined && filters.isRoundTrip !== '') {
     params.append('isRoundTrip', filters.isRoundTrip);
   }
@@ -21,17 +22,18 @@ const buildRidesUrl = (filters = {}) => {
 function RideFeed({ currentUserId, socket }) {
   const [rides, setRides] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
   const [pickupFilter, setPickupFilter] = useState('');
   const [destinationFilter, setDestinationFilter] = useState('');
   const [departureDateFilter, setDepartureDateFilter] = useState('');
   const [minSeatsFilter, setMinSeatsFilter] = useState('');
-  const [roundTripFilter, setRoundTripFilter] = useState(''); // '' = any, 'true' = round trip, 'false' = one way
+  const [roundTripFilter, setRoundTripFilter] = useState('');
   const [activeFilters, setActiveFilters] = useState({});
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const activeFiltersRef = useRef(activeFilters);
-
   const hasActiveFilters = Object.keys(activeFilters).length > 0;
 
-  const fetchRides = (filters = activeFilters) => {
+  const fetchRides = (filters = activeFiltersRef.current) => {
     setLoading(true);
     fetch(buildRidesUrl(filters))
       .then(res => res.json())
@@ -40,7 +42,7 @@ function RideFeed({ currentUserId, socket }) {
         setLoading(false);
       })
       .catch(err => {
-        console.error("Error fetching rides:", err);
+        console.error('Error fetching rides:', err);
         setLoading(false);
       });
   };
@@ -51,6 +53,8 @@ function RideFeed({ currentUserId, socket }) {
 
   useEffect(() => {
     fetchRides({});
+
+    if (!socket) return;
 
     socket.on('rides-update', (payload) => {
       console.log('Real-time update received:', payload.eventType);
@@ -78,7 +82,6 @@ function RideFeed({ currentUserId, socket }) {
     if (departureDateFilter) filters.departureDate = departureDateFilter;
     if (minSeatsFilter.trim()) filters.minSeats = minSeatsFilter.trim();
     if (roundTripFilter !== '') filters.isRoundTrip = roundTripFilter;
-
     setActiveFilters(filters);
     fetchRides(filters);
   };
@@ -93,138 +96,130 @@ function RideFeed({ currentUserId, socket }) {
     fetchRides({});
   };
 
+  // Client-side search + sort on top of server-side filters
+  const filteredRides = rides
+    .filter(ride => ride && ride.id)
+    .filter(ride => {
+      const query = search.toLowerCase();
+      return (
+        ride.title?.toLowerCase().includes(query) ||
+        ride.pickup_location?.toLowerCase().includes(query) ||
+        ride.destination?.toLowerCase().includes(query) ||
+        ride.description?.toLowerCase().includes(query)
+      );
+    })
+    .sort((a, b) => {
+      // Show rides you've joined first
+      const aJoined = a.passengers?.includes(currentUserId);
+      const bJoined = b.passengers?.includes(currentUserId);
+      if (aJoined && !bJoined) return -1;
+      if (!aJoined && bJoined) return 1;
+      return new Date(b.created_at) - new Date(a.created_at);
+    });
+
   return (
-    <div>
-      <h2>Available Rides</h2>
-      <div style={{
-        backgroundColor: '#f5f5f5',
-        padding: '15px',
-        borderRadius: '8px',
-        marginBottom: '20px',
-        border: '1px solid #ddd'
-      }}>
-        <h3 style={{ marginTop: 0 }}>Find Rides</h3>
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+    <main className="page">
+      <section className="page-header">
+        <h1>Ride Feed</h1>
+        <p>Find available rides from UCLA students.</p>
+      </section>
 
-          <div style={{ flex: 1, minWidth: '180px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Pickup Location</label>
-            <input
-              type="text"
-              value={pickupFilter}
-              onChange={(e) => setPickupFilter(e.target.value)}
-              placeholder="e.g. UCLA Dorms"
-              style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px', boxSizing: 'border-box' }}
-            />
-          </div>
+      <section className="feed-controls">
+        <input
+          type="text"
+          placeholder="Search pickup, destination, title, or description..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+        <button
+          type="button"
+          className="secondary-button"
+          onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+        >
+          {showAdvancedFilters ? 'Hide Advanced Search' : 'Advanced Search'}
+        </button>
+      </section>
 
-          <div style={{ flex: 1, minWidth: '180px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Destination</label>
-            <input
-              type="text"
-              value={destinationFilter}
-              onChange={(e) => setDestinationFilter(e.target.value)}
-              placeholder="e.g. LAX"
-              style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px', boxSizing: 'border-box' }}
-            />
-          </div>
+      {hasActiveFilters && !showAdvancedFilters && (
+        <section className="feed-controls">
+          <p className="empty-message">Advanced filters are currently active.</p>
+          <button type="button" className="secondary-button" onClick={clearFilters}>
+            Clear Filters
+          </button>
+        </section>
+      )}
 
-          <div style={{ flex: 1, minWidth: '160px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Departure Date</label>
-            <input
-              type="date"
-              value={departureDateFilter}
-              onChange={(e) => setDepartureDateFilter(e.target.value)}
-              style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px', boxSizing: 'border-box' }}
-            />
-          </div>
-
-          <div style={{ flex: 1, minWidth: '160px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Minimum Seats</label>
-            <input
-              type="number"
-              value={minSeatsFilter}
-              onChange={(e) => setMinSeatsFilter(e.target.value)}
-              min="0"
-              placeholder="e.g. 2"
-              style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px', boxSizing: 'border-box' }}
-            />
-          </div>
-
-          {/* Round trip filter */}
-          <div style={{ flex: 1, minWidth: '160px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Trip Type</label>
-            <select
-              value={roundTripFilter}
-              onChange={(e) => setRoundTripFilter(e.target.value)}
-              style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px', boxSizing: 'border-box' }}
-            >
-              <option value="">Any</option>
-              <option value="false">One Way</option>
-              <option value="true">Round Trip</option>
-            </select>
-          </div>
-
-        </div>
-
-        <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
-          <button
-            onClick={applyFilters}
-            style={{
-              padding: '10px 16px',
-              backgroundColor: '#4CAF50',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontWeight: 'bold'
-            }}
+      {showAdvancedFilters && (
+        <section className="feed-controls filter-controls">
+          <input
+            type="text"
+            placeholder="Pickup location"
+            value={pickupFilter}
+            onChange={e => setPickupFilter(e.target.value)}
+          />
+          <input
+            type="text"
+            placeholder="Destination"
+            value={destinationFilter}
+            onChange={e => setDestinationFilter(e.target.value)}
+          />
+          <input
+            type="date"
+            value={departureDateFilter}
+            onChange={e => setDepartureDateFilter(e.target.value)}
+          />
+          <input
+            type="number"
+            min="0"
+            placeholder="Minimum seats"
+            value={minSeatsFilter}
+            onChange={e => setMinSeatsFilter(e.target.value)}
+          />
+          <select
+            value={roundTripFilter}
+            onChange={e => setRoundTripFilter(e.target.value)}
           >
+            <option value="">Any trip</option>
+            <option value="false">One way</option>
+            <option value="true">Round trip</option>
+          </select>
+          <button type="button" className="primary-button" onClick={applyFilters}>
             Apply Filters
           </button>
-
           {hasActiveFilters && (
-            <button
-              onClick={clearFilters}
-              style={{
-                padding: '10px 16px',
-                backgroundColor: 'transparent',
-                color: '#555',
-                border: '1px solid #ccc',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontWeight: 'bold'
-              }}
-            >
+            <button type="button" className="secondary-button" onClick={clearFilters}>
               Clear Filters
             </button>
           )}
-        </div>
+        </section>
+      )}
 
-        {hasActiveFilters && (
-          <p style={{ margin: '10px 0 0', color: '#666', fontSize: '13px' }}>
-            Showing {rides.length} ride(s) matching your filters
-          </p>
-        )}
-      </div>
-
-      {loading ? (
-        <p>Loading...</p>
-      ) : rides.filter(ride => ride && ride.id).length > 0 ? (
-        rides.filter(ride => ride && ride.id).map(ride => (
-          <RideCard
-            key={ride.id}
-            ride={ride}
-            currentUserId={currentUserId}
-            onUpdate={fetchRides}
-            socket={socket}
-          />
-        ))
-      ) : (
-        <p style={{ color: 'red' }}>
-          {hasActiveFilters ? 'No rides found matching your filters.' : 'No rides found.'}
+      {hasActiveFilters && (
+        <p className="empty-message">
+          Showing {filteredRides.length} ride(s) matching your filters.
         </p>
       )}
-    </div>
+
+      <section className="post-list">
+        {loading ? (
+          <p className="empty-message">Loading rides...</p>
+        ) : filteredRides.length > 0 ? (
+          filteredRides.map(ride => (
+            <RideCard
+              key={ride.id}
+              ride={ride}
+              currentUserId={currentUserId}
+              onUpdate={fetchRides}
+              socket={socket}
+            />
+          ))
+        ) : (
+          <p className="empty-message">
+            {hasActiveFilters ? 'No rides found matching your filters.' : 'No rides found.'}
+          </p>
+        )}
+      </section>
+    </main>
   );
 }
 

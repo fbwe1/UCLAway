@@ -13,7 +13,6 @@ function Conversation({ currentUserId, socket }) {
   const [sending, setSending] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Auto scroll to bottom when new messages arrive
   const bottomRef = useRef(null);
 
   const fetchMessages = async () => {
@@ -27,7 +26,6 @@ function Conversation({ currentUserId, socket }) {
       } else {
         setConversation(data.conversation);
         setMessages(data.messages);
-        // Mark messages as read when opening the conversation
         markAsRead();
       }
     } catch {
@@ -47,35 +45,25 @@ function Conversation({ currentUserId, socket }) {
           body: JSON.stringify({ userId: currentUserId })
         }
       );
-    } catch {
-      // Silently fail — not critical if read status doesn't update
-    }
+    } catch {}
   };
 
   useEffect(() => {
     fetchMessages();
   }, [conversationId]);
 
-  // Scroll to bottom whenever messages change
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Listen for new messages via Socket.io
-  // When a new message arrives for this conversation, append it to the list
   useEffect(() => {
     if (!socket) return;
-
     socket.on('new-message', ({ conversationId: incomingConvId, message }) => {
-      // Only update if the message belongs to THIS conversation
-      // AND the message is from the OTHER user — we already added our own message
-      // immediately after sending so we don't want to add it again from the socket
       if (incomingConvId === conversationId && message.sender_id !== currentUserId) {
         setMessages(prev => [...prev, message]);
         markAsRead();
       }
     });
-
     return () => socket.off('new-message');
   }, [socket, conversationId]);
 
@@ -83,7 +71,6 @@ function Conversation({ currentUserId, socket }) {
     if (!newMessage.trim()) return;
     setSending(true);
     setErrorMsg('');
-
     try {
       const res = await fetch(
         `http://localhost:3001/api/messages/conversations/${conversationId}`,
@@ -97,7 +84,6 @@ function Conversation({ currentUserId, socket }) {
       if (!res.ok) {
         setErrorMsg(data.error || 'Failed to send message');
       } else {
-        // Add the sent message to the list immediately (don't wait for socket)
         setMessages(prev => [...prev, data.message]);
         setNewMessage('');
       }
@@ -108,7 +94,6 @@ function Conversation({ currentUserId, socket }) {
     }
   };
 
-  // Allow sending with Enter key (Shift+Enter for new line)
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -124,12 +109,10 @@ function Conversation({ currentUserId, socket }) {
       hour: '2-digit',
       minute: '2-digit',
       hour12: true,
-      timeZone: 'America/Los_Angeles' // TODO: get from user profile after auth merges
+      timeZone: 'America/Los_Angeles'
     });
   };
 
-  // Figure out who the other person is
-  // TODO: replace with username after auth merges
   const otherUserId = conversation
     ? (conversation.user1_id === currentUserId ? conversation.user2_id : conversation.user1_id)
     : null;
@@ -149,7 +132,7 @@ function Conversation({ currentUserId, socket }) {
       margin: '0 auto',
       display: 'flex',
       flexDirection: 'column',
-      height: 'calc(100vh - 120px)' // fill available height below nav
+      height: 'calc(100vh - 180px)' // ← increased from 120px to clear the bottom nav
     }}>
 
       {/* Header */}
@@ -176,18 +159,14 @@ function Conversation({ currentUserId, socket }) {
           ←
         </button>
         <div>
-          <h3 style={{ margin: 0 }}>
-            User {otherUserId}
-            {/* TODO: replace with username after auth merges */}
-          </h3>
+          <h3 style={{ margin: 0 }}>User {otherUserId}</h3>
           <p style={{ margin: 0, color: '#888', fontSize: '12px' }}>
-            {/* TODO: show online status after auth merges */}
             Conversation #{conversationId}
           </p>
         </div>
       </div>
 
-      {/* Messages list — scrollable */}
+      {/* Messages list */}
       <div style={{
         flex: 1,
         overflowY: 'auto',
@@ -225,7 +204,6 @@ function Conversation({ currentUserId, socket }) {
                 </div>
                 <span style={{ color: '#aaa', fontSize: '11px', marginTop: '2px' }}>
                   {formatTime(msg.created_at)}
-                  {/* Show read receipt for your own messages */}
                   {isMine && (
                     <span style={{ marginLeft: '6px' }}>
                       {msg.read ? '✓✓' : '✓'}
@@ -236,7 +214,6 @@ function Conversation({ currentUserId, socket }) {
             );
           })
         )}
-        {/* Invisible div at bottom for auto-scroll */}
         <div ref={bottomRef} />
       </div>
 
@@ -247,6 +224,7 @@ function Conversation({ currentUserId, socket }) {
         display: 'flex',
         gap: '8px',
         paddingTop: '12px',
+        paddingBottom: '16px', // ← added so input doesn't touch the nav
         borderTop: '1px solid #ccc'
       }}>
         <textarea

@@ -49,7 +49,7 @@ function Messages({ currentUserId, socket }) {
 
   return (
     <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-      <h2 style={{ marginBottom: '16px' }}>💬 Messages</h2>
+      <h2 style={{ marginBottom: '16px' }}>Messages</h2>
 
       {loading ? (
         <p>Loading...</p>

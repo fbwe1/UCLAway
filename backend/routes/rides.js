@@ -121,6 +121,73 @@ router.post('/', async (req, res) => {
   }
 });
 
+// PUT edit a ride (creator only)
+router.put('/:rideId', async (req, res) => {
+  try {
+    const rideId = parseInt(req.params.rideId);
+    const {
+      userId, title, description, pickup_location, destination,
+      total_seats, departure_time, is_round_trip, return_time
+    } = req.body;
+
+    const userIdInt = parseInt(userId);
+
+    // Verify creator
+    const { data: ride, error: fetchError } = await supabase
+      .from('rides')
+      .select('creator_user_id, passengers')
+      .eq('id', rideId)
+      .single();
+
+    if (fetchError || !ride) return res.status(404).json({ error: 'Ride not found' });
+    if (ride.creator_user_id !== userIdInt) {
+      return res.status(403).json({ error: 'Only the creator can edit this ride' });
+    }
+
+    // Can't reduce seats below current passenger count + creator
+    const passengerCount = (ride.passengers || []).length;
+    if (parseInt(total_seats) < passengerCount + 1) {
+      return res.status(400).json({
+        error: `Cannot reduce seats below current passenger count (${passengerCount + 1})`
+      });
+    }
+
+    if (new Date(departure_time) <= new Date()) {
+      return res.status(400).json({ error: 'Departure time must be in the future' });
+    }
+
+    if (is_round_trip && return_time) {
+      if (new Date(return_time) <= new Date(departure_time)) {
+        return res.status(400).json({ error: 'Return time must be after departure time' });
+      }
+    }
+
+    const newTotalSeats = parseInt(total_seats);
+    const newAvailableSeats = newTotalSeats - 1 - passengerCount;
+
+    const { error: updateError } = await supabase
+      .from('rides')
+      .update({
+        title,
+        description: description || null,
+        pickup_location,
+        destination,
+        total_seats: newTotalSeats,
+        available_seats: newAvailableSeats,
+        departure_time,
+        is_round_trip: is_round_trip || false,
+        return_time: is_round_trip ? return_time : null
+      })
+      .eq('id', rideId);
+
+    if (updateError) throw updateError;
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to update ride' });
+  }
+});
+
 // POST join a ride
 router.post('/:rideId/join', async (req, res) => {
   try {

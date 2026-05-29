@@ -11,13 +11,30 @@ function RideDetail({ currentUserId, socket }) {
   const [actionLoading, setActionLoading] = useState(false);
   const [removingRider, setRemovingRider] = useState(null);
 
-  // Temporary note — resets on every page load (useState only, no DB or localStorage)
-  // TODO: persist to DB once comments are added to rides table
+  const [editing, setEditing] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editPickupLocation, setEditPickupLocation] = useState('');
+  const [editDestination, setEditDestination] = useState('');
+  const [editTotalSeats, setEditTotalSeats] = useState('');
+  const [editDepartureTime, setEditDepartureTime] = useState('');
+  const [editIsRoundTrip, setEditIsRoundTrip] = useState(false);
+  const [editReturnTime, setEditReturnTime] = useState('');
+
+ // TODO: Add to database later
   const [note, setNote] = useState('');
 
-  // Defined outside the effect — same pattern as fetchRides in RideFeed.
-  // All values it closes over (id, setRide, setErrorMsg, setLoading) are stable
-  // references so calling this from a once-registered socket handler is safe.
+  const toDatetimeLocal = (value) => {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    const offsetMs = date.getTimezoneOffset() * 60000;
+    return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+  };
+
+  const now = toDatetimeLocal(new Date());
+
   const fetchRide = async () => {
     try {
       const res = await fetch(`http://localhost:3001/api/rides/${id}`);
@@ -34,15 +51,28 @@ function RideDetail({ currentUserId, socket }) {
     }
   };
 
-  // Single effect, empty dep array — mirrors RideFeed exactly.
-  // Combining the initial fetch and socket listener into one effect with []
-  // means the listener is registered once and never torn down/re-created,
-  // which is why RideFeed reliably receives updates.
   useEffect(() => {
     fetchRide();
+  }, [id]);
 
+  // Populate edit fields whenever ride data loads
+  useEffect(() => {
+    if (!ride) return;
+    setEditTitle(ride.title || '');
+    setEditDescription(ride.description || '');
+    setEditPickupLocation(ride.pickup_location || '');
+    setEditDestination(ride.destination || '');
+    setEditTotalSeats(ride.total_seats || '');
+    setEditDepartureTime(toDatetimeLocal(ride.departure_time));
+    setEditIsRoundTrip(Boolean(ride.is_round_trip));
+    setEditReturnTime(toDatetimeLocal(ride.return_time));
+  }, [ride]);
+
+  // Listen for real-time ride updates via Socket.io
+  // So join/leave/remove rider updates are reflected instantly without going back to feed
+  useEffect(() => {
+    if (!socket) return;
     socket.on('rides-update', (payload) => {
-      console.log('RideDetail real-time update:', payload.eventType);
       if (payload.eventType === 'UPDATE' && payload.new.id === parseInt(id)) {
         // Re-fetch instead of using payload.new directly
         // because join uses an RPC which may return incomplete data
@@ -52,9 +82,8 @@ function RideDetail({ currentUserId, socket }) {
         navigate('/');
       }
     });
-
     return () => socket.off('rides-update');
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [socket, id]);
 
   const formatDate = (dateStr) => {
     if (!dateStr) return null;
@@ -115,6 +144,54 @@ function RideDetail({ currentUserId, socket }) {
       setErrorMsg('Failed to connect to the backend server.');
     } finally {
       setRemovingRider(null);
+    }
+  };
+
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    setSavingEdit(true);
+    setErrorMsg('');
+
+    if (editIsRoundTrip) {
+      if (!editReturnTime) {
+        setErrorMsg('Return time is required for round trips');
+        setSavingEdit(false);
+        return;
+      }
+      if (new Date(editReturnTime) <= new Date(editDepartureTime)) {
+        setErrorMsg('Return time must be after departure time');
+        setSavingEdit(false);
+        return;
+      }
+    }
+
+    try {
+      const res = await fetch(`http://localhost:3001/api/rides/${ride.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: currentUserId,
+          title: editTitle,
+          description: editDescription,
+          pickup_location: editPickupLocation,
+          destination: editDestination,
+          total_seats: parseInt(editTotalSeats),
+          departure_time: new Date(editDepartureTime).toISOString(),
+          is_round_trip: editIsRoundTrip,
+          return_time: editIsRoundTrip ? new Date(editReturnTime).toISOString() : null
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorMsg(data.error || 'Failed to update ride');
+      } else {
+        setEditing(false);
+        fetchRide();
+      }
+    } catch {
+      setErrorMsg('Failed to connect to the backend server.');
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -200,12 +277,12 @@ function RideDetail({ currentUserId, socket }) {
         fontSize: '12px',
         marginBottom: '12px'
       }}>
-        {ride.is_round_trip ? '🔄 Round Trip' : '➡️ One Way'}
+        {ride.is_round_trip ? 'Round Trip' : 'One Way'}
       </span>
 
       {/* Route */}
       <p style={{ fontSize: '15px', margin: '6px 0' }}>
-        📍 <strong>{ride.pickup_location}</strong> → <strong>{ride.destination}</strong>
+        <strong>{ride.pickup_location}</strong> → <strong>{ride.destination}</strong>
       </p>
 
       {/* Description */}
@@ -216,12 +293,12 @@ function RideDetail({ currentUserId, socket }) {
       {/* Times */}
       {ride.departure_time && (
         <p style={{ fontSize: '14px', margin: '4px 0' }}>
-          🕐 <strong>Departure:</strong> {formatDate(ride.departure_time)}
+          <strong>Departure:</strong> {formatDate(ride.departure_time)}
         </p>
       )}
       {ride.is_round_trip && ride.return_time && (
         <p style={{ fontSize: '14px', margin: '4px 0' }}>
-          🔁 <strong>Return:</strong> {formatDate(ride.return_time)}
+          <strong>Return:</strong> {formatDate(ride.return_time)}
         </p>
       )}
 
@@ -271,7 +348,7 @@ function RideDetail({ currentUserId, socket }) {
               fontWeight: 'bold'
             }}
           >
-            💬 Message
+            Message
           </button>
         )}
       </div>
@@ -305,7 +382,7 @@ function RideDetail({ currentUserId, socket }) {
                     fontWeight: 'bold'
                   }}
                 >
-                  💬 Message
+                  Message
                 </button>
               )}
               {/* Remove rider button — creator only */}
@@ -341,14 +418,69 @@ function RideDetail({ currentUserId, socket }) {
       {/* ── Join / Leave button ── */}
       {isRemoved && (
         <p style={{ color: '#c0392b', fontSize: '13px', textAlign: 'center' }}>
-          🚫 You have been removed from this ride
+          You have been removed from this ride
         </p>
       )}
 
       {isCreator && (
-        <p style={{ color: '#888', fontSize: '13px', textAlign: 'center' }}>
-          You created this ride
-        </p>
+        <>
+          <p style={{ color: '#888', fontSize: '13px', textAlign: 'center' }}>
+            You created this ride
+          </p>
+
+          {!editing ? (
+            <button
+              onClick={() => setEditing(true)}
+              className="secondary-button"
+              style={{ width: '100%', marginBottom: '8px' }}
+            >
+              Edit Ride
+            </button>
+          ) : (
+            <form onSubmit={handleSaveEdit} style={{ marginBottom: '12px' }}>
+              <div className="form-group">
+                <label>Title</label>
+                <input type="text" value={editTitle} onChange={e => setEditTitle(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }} />
+              </div>
+              <div className="form-group">
+                <label>Description</label>
+                <textarea value={editDescription} onChange={e => setEditDescription(e.target.value)} rows={3} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }} />
+              </div>
+              <div className="form-group">
+                <label>Pickup Location</label>
+                <input type="text" value={editPickupLocation} onChange={e => setEditPickupLocation(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }} />
+              </div>
+              <div className="form-group">
+                <label>Destination</label>
+                <input type="text" value={editDestination} onChange={e => setEditDestination(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }} />
+              </div>
+              <div className="form-group">
+                <label>Total Seats (including yourself)</label>
+                <input type="number" value={editTotalSeats} onChange={e => setEditTotalSeats(e.target.value)} required min={Math.max((ride.passengers?.length || 0) + 1, 2)} max="8" style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }} />
+              </div>
+              <div className="form-group">
+                <label>Departure Time</label>
+                <input type="datetime-local" value={editDepartureTime} onChange={e => setEditDepartureTime(e.target.value)} required min={now} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }} />
+              </div>
+              <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input type="checkbox" id="editRoundTrip" checked={editIsRoundTrip} onChange={e => setEditIsRoundTrip(e.target.checked)} style={{ width: '16px', height: '16px' }} />
+                <label htmlFor="editRoundTrip">Round Trip</label>
+              </div>
+              {editIsRoundTrip && (
+                <div className="form-group">
+                  <label>Return Time</label>
+                  <input type="datetime-local" value={editReturnTime} onChange={e => setEditReturnTime(e.target.value)} required={editIsRoundTrip} min={editDepartureTime || now} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }} />
+                </div>
+              )}
+              <button type="submit" disabled={savingEdit} style={{ width: '100%', padding: '10px', backgroundColor: savingEdit ? '#ccc' : '#4CAF50', color: 'white', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: savingEdit ? 'not-allowed' : 'pointer', marginBottom: '8px' }}>
+                {savingEdit ? 'Saving...' : 'Save Changes'}
+              </button>
+              <button type="button" onClick={() => { setEditing(false); setErrorMsg(''); }} disabled={savingEdit} style={{ width: '100%', padding: '10px', backgroundColor: 'transparent', color: '#888', border: '1px solid #ccc', borderRadius: '4px', cursor: 'pointer' }}>
+                Cancel
+              </button>
+            </form>
+          )}
+        </>
       )}
 
       {!isCreator && !isRemoved && (
@@ -378,7 +510,7 @@ function RideDetail({ currentUserId, socket }) {
       {/* ── Temporary notes section ── */}
       {/* TODO: replace with real comments stored in DB once comments are added to rides table */}
       {/* Currently resets every page load — only visible to you, nothing is saved */}
-      <h3 style={{ margin: '0 0 8px 0' }}>📝 My Notes <span style={{ color: '#aaa', fontSize: '12px', fontWeight: 'normal' }}>(only visible to you, resets on refresh)</span></h3>
+      <h3 style={{ margin: '0 0 8px 0' }}>My Notes <span style={{ color: '#aaa', fontSize: '12px', fontWeight: 'normal' }}>(only visible to you, resets on refresh)</span></h3>
       <textarea
         value={note}
         onChange={e => setNote(e.target.value)}
