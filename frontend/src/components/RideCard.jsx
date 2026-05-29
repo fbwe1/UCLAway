@@ -6,6 +6,42 @@ const RideCard = ({ ride, currentUserId, onUpdate, socket }) => {
   const [removingRider, setRemovingRider] = useState(null)
   const [errorMsg, setErrorMsg] = useState("")
 
+  const [editing, setEditing] = useState(false)
+  const [savingEdit, setSavingEdit] = useState(false)
+  const [editTitle, setEditTitle] = useState("")
+  const [editDescription, setEditDescription] = useState("")
+  const [editPickupLocation, setEditPickupLocation] = useState("")
+  const [editDestination, setEditDestination] = useState("")
+  const [editTotalSeats, setEditTotalSeats] = useState("")
+  const [editDepartureTime, setEditDepartureTime] = useState("")
+  const [editIsRoundTrip, setEditIsRoundTrip] = useState(false)
+  const [editReturnTime, setEditReturnTime] = useState("")
+
+  const toDatetimeLocal = (value) => {
+    if (!value) return ""
+
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return ""
+
+    const offsetMs = date.getTimezoneOffset() * 60000
+    return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16)
+  }
+
+  const now = toDatetimeLocal(new Date())
+
+  useEffect(() => {
+    if (!ride) return
+
+    setEditTitle(ride.title || "")
+    setEditDescription(ride.description || "")
+    setEditPickupLocation(ride.pickup_location || "")
+    setEditDestination(ride.destination || "")
+    setEditTotalSeats(ride.total_seats || "")
+    setEditDepartureTime(toDatetimeLocal(ride.departure_time))
+    setEditIsRoundTrip(Boolean(ride.is_round_trip))
+    setEditReturnTime(toDatetimeLocal(ride.return_time))
+  }, [ride])
+
   if (!ride) return null
 
   const passengers = Array.isArray(ride.passengers) ? ride.passengers : []
@@ -172,6 +208,56 @@ const RideCard = ({ ride, currentUserId, onUpdate, socket }) => {
       setRemovingRider(null)
     }
   }
+  const handleSaveEdit = async (e) => {
+  e.preventDefault()
+  setSavingEdit(true)
+  setErrorMsg("")
+
+  if (editIsRoundTrip) {
+    if (!editReturnTime) {
+      setErrorMsg("Return time is required for round trips")
+      setSavingEdit(false)
+      return
+    }
+
+    if (new Date(editReturnTime) <= new Date(editDepartureTime)) {
+      setErrorMsg("Return time must be after departure time")
+      setSavingEdit(false)
+      return
+    }
+  }
+
+  try {
+    const response = await fetch(`http://localhost:3001/api/rides/${ride.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: currentUserId,
+        title: editTitle,
+        description: editDescription,
+        pickup_location: editPickupLocation,
+        destination: editDestination,
+        total_seats: parseInt(editTotalSeats),
+        departure_time: new Date(editDepartureTime).toISOString(),
+        is_round_trip: editIsRoundTrip,
+        return_time: editIsRoundTrip ? new Date(editReturnTime).toISOString() : null,
+      }),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      setErrorMsg(data.error || "Failed to update ride")
+    } else {
+      setEditing(false)
+      onUpdate()
+    }
+  } catch {
+    setErrorMsg("Failed to connect to the backend server.")
+  } finally {
+    setSavingEdit(false)
+  }
+}
 
   return (
     <article className="post-card">
@@ -255,19 +341,151 @@ const RideCard = ({ ride, currentUserId, onUpdate, socket }) => {
       )}
 
       {isCreator ? (
-        <>
-          <p className="creator-note">You created this ride</p>
+      <>
+        <p className="creator-note">You created this ride</p>
 
-          <button
-            type="button"
-            onClick={handleRemoveRide}
-            disabled={removing}
-            className="danger-button"
-          >
-            {removing ? "Removing..." : "Remove Ride"}
-          </button>
-        </>
-      ) : (
+        {!editing ? (
+          <>
+            {!hasDeparted && (
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
+                className="secondary-button"
+              >
+                Edit Ride
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={handleRemoveRide}
+              disabled={removing}
+              className="danger-button"
+            >
+              {removing ? "Removing..." : "Remove Ride"}
+            </button>
+          </>
+        ) : (
+          <form className="form-card" onSubmit={handleSaveEdit}>
+            <div className="form-group">
+              <label>Title</label>
+              <input
+                type="text"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Description</label>
+              <textarea
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                rows={3}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Pickup Location</label>
+              <input
+                type="text"
+                value={editPickupLocation}
+                onChange={(e) => setEditPickupLocation(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Destination</label>
+              <input
+                type="text"
+                value={editDestination}
+                onChange={(e) => setEditDestination(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Total Seats including yourself</label>
+              <input
+                type="number"
+                value={editTotalSeats}
+                onChange={(e) => setEditTotalSeats(e.target.value)}
+                required
+                min={Math.max(passengers.length + 1, 2)}
+                max="8"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Departure Time</label>
+              <input
+                type="datetime-local"
+                value={editDepartureTime}
+                onChange={(e) => setEditDepartureTime(e.target.value)}
+                required
+                min={now}
+              />
+            </div>
+
+            <div className="form-group">
+              <label
+                htmlFor={`roundTrip-${ride.id}`}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  cursor: "pointer",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  id={`roundTrip-${ride.id}`}
+                  checked={editIsRoundTrip}
+                  onChange={(e) => setEditIsRoundTrip(e.target.checked)}
+                  style={{ width: "18px", height: "18px" }}
+                />
+                Round Trip
+              </label>
+            </div>
+
+            {editIsRoundTrip && (
+              <div className="form-group">
+                <label>Return Time</label>
+                <input
+                  type="datetime-local"
+                  value={editReturnTime}
+                  onChange={(e) => setEditReturnTime(e.target.value)}
+                  required={editIsRoundTrip}
+                  min={editDepartureTime || now}
+                />
+              </div>
+            )}
+
+            <button
+              type="submit"
+              className="primary-button"
+              disabled={savingEdit}
+            >
+              {savingEdit ? "Saving..." : "Save Changes"}
+            </button>
+
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => {
+                setEditing(false)
+                setErrorMsg("")
+              }}
+              disabled={savingEdit}
+            >
+              Cancel
+            </button>
+          </form>
+        )}
+      </>
+    ) : (
         !isRemoved && (
           <button
             type="button"
