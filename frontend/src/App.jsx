@@ -1,6 +1,15 @@
+import React from 'react';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import { io } from 'socket.io-client';
 import RideFeed from './pages/RideFeed';
 import CreateRide from './pages/CreateRide';
+import RideDetail from './pages/RideDetail';
+import Conversation from './pages/Conversation';
+import Messages from './pages/Messages';
+
+// Socket created once at the top level and passed down to pages that need it
+// This prevents multiple socket connections being created
+const socket = io('http://localhost:3001');
 
 // ============================================================
 // TODO: DELETE THIS BLOCK WHEN AUTH IS MERGED
@@ -17,17 +26,20 @@ function App() {
     <BrowserRouter>
       <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
         {/* Nav bar */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #ccc', paddingBottom: '12px' }}>
-          <img
-            src="/logo.svg"
-            alt="UCLAway Logo"
-            style={{
-              height: '90px',
-              objectFit: 'contain'
-            }}
-          />
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '20px',
+          borderBottom: '1px solid #ccc',
+          paddingBottom: '12px'
+        }}>
+          <h1 style={{ margin: 0 }}>
+            <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}>UCLAway 🚗</Link>
+          </h1>
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
             <Link to="/" style={{ textDecoration: 'none', color: '#333', fontWeight: 'bold' }}>Feed</Link>
+            <Link to="/messages" style={{ textDecoration: 'none', color: '#333', fontWeight: 'bold' }}>💬 Messages</Link>
             <Link to="/create" style={{
               textDecoration: 'none',
               backgroundColor: '#4CAF50',
@@ -45,8 +57,11 @@ function App() {
 
         {/* Pages */}
         <Routes>
-          <Route path="/" element={<RideFeed currentUserId={currentUserId} />} />
+          <Route path="/" element={<RideFeed currentUserId={currentUserId} socket={socket} />} />
           <Route path="/create" element={<CreateRide currentUserId={currentUserId} />} />
+          <Route path="/rides/:id" element={<RideDetail currentUserId={currentUserId} socket={socket} />} />
+          <Route path="/messages" element={<Messages currentUserId={currentUserId} socket={socket} />} />
+          <Route path="/messages/:id" element={<Conversation currentUserId={currentUserId} socket={socket} />} />
         </Routes>
       </div>
     </BrowserRouter>

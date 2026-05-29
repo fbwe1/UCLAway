@@ -1,9 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { io } from 'socket.io-client';
 import RideCard from '../RideCard';
 
-const socket = io('http://localhost:3001');
-
+// Socket is now passed in from App.jsx so there's only one connection app-wide
 const buildRidesUrl = (filters = {}) => {
   const params = new URLSearchParams();
 
@@ -20,7 +18,7 @@ const buildRidesUrl = (filters = {}) => {
   return `http://localhost:3001/api/rides${queryString ? `?${queryString}` : ''}`;
 };
 
-function RideFeed({ currentUserId }) {
+function RideFeed({ currentUserId, socket }) {
   const [rides, setRides] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pickupFilter, setPickupFilter] = useState('');

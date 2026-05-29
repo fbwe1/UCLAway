@@ -53,6 +53,24 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET single ride by ID
+router.get('/:rideId', async (req, res) => {
+  try {
+    const rideId = parseInt(req.params.rideId);
+    const { data: ride, error } = await supabase
+      .from('rides')
+      .select('*')
+      .eq('id', rideId)
+      .single();
+
+    if (error || !ride) return res.status(404).json({ error: "Ride not found" });
+    res.json(ride);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to fetch ride" });
+  }
+});
+
 // POST create a ride
 router.post('/', async (req, res) => {
   try {
