@@ -257,4 +257,138 @@ router.delete('/:rideId', async (req, res) => {
   }
 });
 
+// PUT edit a ride (creator only)
+router.put('/:rideId', async (req, res) => {
+  try {
+    const rideId = parseInt(req.params.rideId);
+    const {
+      userId,
+      title,
+      description,
+      pickup_location,
+      destination,
+      total_seats,
+      departure_time,
+      is_round_trip,
+      return_time
+    } = req.body;
+
+    const userIdInt = parseInt(userId);
+
+    if (!userId || Number.isNaN(userIdInt)) {
+      return res.status(400).json({ error: "Valid userId is required" });
+    }
+
+    const { data: ride, error: fetchError } = await supabase
+      .from('rides')
+      .select('*')
+      .eq('id', rideId)
+      .single();
+
+    if (fetchError || !ride) {
+      return res.status(404).json({ error: "Ride not found" });
+    }
+
+    if (ride.creator_user_id !== userIdInt) {
+      return res.status(403).json({ error: "Only the creator can edit this ride" });
+    }
+
+    if (new Date(ride.departure_time) <= new Date()) {
+      return res.status(400).json({ error: "Cannot edit a ride that has already departed" });
+    }
+
+    const updatedFields = {};
+
+    if (title !== undefined) {
+      if (!title.trim()) {
+        return res.status(400).json({ error: "Title cannot be empty" });
+      }
+      updatedFields.title = title;
+    }
+
+    if (description !== undefined) {
+      updatedFields.description = description || null;
+    }
+
+    if (pickup_location !== undefined) {
+      if (!pickup_location.trim()) {
+        return res.status(400).json({ error: "Pickup location cannot be empty" });
+      }
+      updatedFields.pickup_location = pickup_location;
+    }
+
+    if (destination !== undefined) {
+      if (!destination.trim()) {
+        return res.status(400).json({ error: "Destination cannot be empty" });
+      }
+      updatedFields.destination = destination;
+    }
+
+    if (departure_time !== undefined) {
+      if (new Date(departure_time) <= new Date()) {
+        return res.status(400).json({ error: "Departure time must be in the future" });
+      }
+      updatedFields.departure_time = departure_time;
+    }
+
+    const finalDepartureTime = departure_time || ride.departure_time;
+    const finalIsRoundTrip =
+      is_round_trip !== undefined ? Boolean(is_round_trip) : ride.is_round_trip;
+
+    if (is_round_trip !== undefined) {
+      updatedFields.is_round_trip = Boolean(is_round_trip);
+    }
+
+    if (finalIsRoundTrip) {
+      const finalReturnTime = return_time !== undefined ? return_time : ride.return_time;
+
+      if (!finalReturnTime) {
+        return res.status(400).json({ error: "Return time is required for round trips" });
+      }
+
+      if (new Date(finalReturnTime) <= new Date(finalDepartureTime)) {
+        return res.status(400).json({ error: "Return time must be after departure time" });
+      }
+
+      updatedFields.return_time = finalReturnTime;
+    } else {
+      updatedFields.return_time = null;
+    }
+
+    if (total_seats !== undefined) {
+      const totalSeatsInt = parseInt(total_seats);
+
+      if (Number.isNaN(totalSeatsInt) || totalSeatsInt < 1) {
+        return res.status(400).json({ error: "total_seats must be a positive number" });
+      }
+
+      const passengerCount = ride.passengers ? ride.passengers.length : 0;
+      const minimumSeatsNeeded = passengerCount + 1; // passengers + creator
+
+      if (totalSeatsInt < minimumSeatsNeeded) {
+        return res.status(400).json({
+          error: `Total seats cannot be less than ${minimumSeatsNeeded} because ${passengerCount} passenger(s) have already joined`
+        });
+      }
+
+      updatedFields.total_seats = totalSeatsInt;
+      updatedFields.available_seats = totalSeatsInt - 1 - passengerCount;
+    }
+
+    const { data, error: updateError } = await supabase
+      .from('rides')
+      .update(updatedFields)
+      .eq('id', rideId)
+      .select()
+      .single();
+
+    if (updateError) throw updateError;
+
+    res.json({ success: true, ride: data });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to edit ride" });
+  }
+});
+
 module.exports = router;
