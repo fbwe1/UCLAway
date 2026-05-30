@@ -3,15 +3,20 @@ import RideCard from "./components/RideCard"
 
 export default function Profile({ currentUserId }) {
   const [rides, setRides] = useState([])
+  const [history, setHistory] = useState([])
   const [loading, setLoading] = useState(true)
 
   const fetchRides = () => {
     setLoading(true)
 
-    fetch("http://localhost:3001/api/rides")
-      .then((res) => res.json())
-      .then((data) => {
-        setRides(data)
+    // Fetch active rides and history in parallel
+    Promise.all([
+      fetch("http://localhost:3001/api/rides").then(res => res.json()),
+      fetch(`http://localhost:3001/api/rides/history?userId=${currentUserId}`).then(res => res.json())
+    ])
+      .then(([activeData, historyData]) => {
+        setRides(Array.isArray(activeData) ? activeData : [])
+        setHistory(Array.isArray(historyData) ? historyData : [])
         setLoading(false)
       })
       .catch((err) => {
@@ -24,12 +29,12 @@ export default function Profile({ currentUserId }) {
     fetchRides()
   }, [])
 
-  const createdRides = rides
-    .filter((ride) => ride.creator_user_id === currentUserId)
+  const createdRides = [...rides, ...history]
+    .filter((ride) => Number(ride.creator_user_id) === Number(currentUserId))
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
 
-  const joinedRides = rides
-    .filter((ride) => ride.passengers?.includes(currentUserId))
+  const joinedRides = [...rides, ...history]
+    .filter((ride) => ride.passengers?.map(Number).includes(Number(currentUserId)))
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
 
   const totalRides = createdRides.length + joinedRides.length
@@ -38,7 +43,6 @@ export default function Profile({ currentUserId }) {
     <main className="page">
       <section className="profile-card">
         <div className="avatar">U</div>
-
         <div>
           <h1>User Profile</h1>
           <p className="muted">User ID: {currentUserId}</p>
@@ -50,12 +54,10 @@ export default function Profile({ currentUserId }) {
           <h2>{createdRides.length}</h2>
           <p>Created</p>
         </div>
-
         <div className="stat-card">
           <h2>{joinedRides.length}</h2>
           <p>Joined</p>
         </div>
-
         <div className="stat-card">
           <h2>{totalRides}</h2>
           <p>Total</p>
@@ -63,7 +65,6 @@ export default function Profile({ currentUserId }) {
       </section>
 
       <h2 className="section-title">My Joined Rides</h2>
-
       <section className="post-list">
         {loading ? (
           <p className="empty-message">Loading rides...</p>
@@ -82,7 +83,6 @@ export default function Profile({ currentUserId }) {
       </section>
 
       <h2 className="section-title">My Created Rides</h2>
-
       <section className="post-list">
         {loading ? (
           <p className="empty-message">Loading rides...</p>
