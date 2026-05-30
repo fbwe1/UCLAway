@@ -53,6 +53,28 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET ride history for a specific user (from ride_history table)
+router.get('/history', async (req, res) => {
+  try {
+    const { userId } = req.query;
+    if (!userId) return res.status(400).json({ error: 'userId is required' });
+
+    const userIdInt = parseInt(userId);
+
+    const { data, error } = await supabase
+      .from('ride_history')
+      .select('*')
+      .or(`creator_user_id.eq.${userIdInt},passengers.cs.{${userIdInt}}`)
+      .order('departure_time', { ascending: false });
+
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to fetch ride history' });
+  }
+});
+
 // GET single ride by ID
 router.get('/:rideId', async (req, res) => {
   try {
