@@ -102,6 +102,31 @@ test("signup rejects non-UCLA email addresses before creating an account", async
     assert.equal(signUpWasCalled, false);
 });
 
+test("signup rejects passwords that are not complex enough before creating an account", async () => {
+    let signUpWasCalled = false;
+    const router = createAuthRoutes({
+        auth: {
+            signUp: async () => {
+                signUpWasCalled = true;
+                return { data: null, error: null };
+            }
+        }
+    });
+
+    const response = await request(router, "/signup", {
+        username: "newuser",
+        ucla_email: "newuser@ucla.edu",
+        password: "password123"
+    });
+
+    assert.equal(response.status, 400);
+    assert.deepEqual(response.body, {
+        status: false,
+        message: "You need to make a more complex password"
+    });
+    assert.equal(signUpWasCalled, false);
+});
+
 test("signup returns an error when Supabase rejects account creation", async () => {
     const router = createAuthRoutes({
         auth: {
