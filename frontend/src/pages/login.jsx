@@ -52,6 +52,9 @@ export default function Login({ onCreateAccount, onLogin }) {
                 <button type="button" className="signin-container button" onClick={onCreateAccount}>
                     Not registered? Create an account!
                 </button>
+                <button type="button" className="signin-container button">
+                    Forgot password?
+                </button>
                 {message && <p className="auth-message">{message}</p>}
             </form>
         </div>
