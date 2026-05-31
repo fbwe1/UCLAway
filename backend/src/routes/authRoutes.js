@@ -10,7 +10,7 @@ router.post("/signup", async (req, res) => {
     // implemented main logic, but still needs more error handling + bug fixes, maybe login w/ google as well
     try{
         //account details
-        const {username, ucla_email, password} = req.body;
+        const {username, full_name, ucla_email, password} = req.body;
         if(!uclaEmailRegex.test(ucla_email)){
             return res.status(400).json({
                 status:false,
@@ -23,15 +23,17 @@ router.post("/signup", async (req, res) => {
               password: password,
               options: {
                 data: {
-                  first_name: username, 
+                  first_name: full_name,
+                  username: username,
                 }
               }
             }
           )
         if(error){
+            console.log("Supabase signup error:", error.message);
             return res.json({
                 status:false, 
-                message: "User Already Exists"})
+                message: error.message || "Signup failed"})
         }
         else{
             return res.json({

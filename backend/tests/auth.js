@@ -58,6 +58,7 @@ test("signup creates an account with valid UCLA account information", async () =
 
     const response = await request(router, "/signup", {
         username: "newuser",
+        full_name: "New User",
         ucla_email: "newuser@g.ucla.edu",
         password: "password123"
     });
@@ -71,7 +72,8 @@ test("signup creates an account with valid UCLA account information", async () =
     assert.equal(signUpCalls[0].email, "newuser@g.ucla.edu");
     assert.equal(signUpCalls[0].password, "password123");
     assert.deepEqual(signUpCalls[0].options.data, {
-        first_name: "newuser"
+        first_name: "New User",
+        username: "newuser"
     });
 });
 
@@ -119,7 +121,7 @@ test("signup returns an error when Supabase rejects account creation", async () 
     assert.equal(response.status, 200);
     assert.deepEqual(response.body, {
         status: false,
-        message: "User Already Exists"
+        message: "already exists"
     });
 });
 
