@@ -5,7 +5,7 @@ const supabase = require('../supabaseClient');
 // GET all rides with optional filters
 router.get('/', async (req, res) => {
   try {
-    const { pickupLocation, destination, departureDate, minSeats, isRoundTrip } = req.query;
+    const { pickupLocation, destination, departureDate, minSeats, isRoundTrip, viewerUserId } = req.query;
 
     let query = supabase
       .from('rides')
@@ -47,7 +47,36 @@ router.get('/', async (req, res) => {
       console.error("SUPABASE ERROR DETAILS:", error.message, error.details, error.hint);
       throw error;
     }
-    res.json(rides);
+
+    const viewerUserIdInt = parseInt(viewerUserId, 10);
+    if (Number.isNaN(viewerUserIdInt)) {
+      return res.json(rides);
+    }
+
+    const { data: followedRows, error: followsError } = await supabase
+      .from('follows')
+      .select('followed_user_id')
+      .eq('follower_user_id', viewerUserIdInt);
+
+    if (followsError) {
+      console.error("SUPABASE FOLLOWS ERROR:", followsError.message, followsError.details, followsError.hint);
+      throw followsError;
+    }
+
+    const followedSet = new Set((followedRows || []).map(row => row.followed_user_id));
+    const rankedRides = rides
+      .map((ride) => ({
+        ...ride,
+        is_followed_creator: followedSet.has(ride.creator_user_id)
+      }))
+      .sort((a, b) => {
+        if (a.is_followed_creator !== b.is_followed_creator) {
+          return a.is_followed_creator ? -1 : 1;
+        }
+        return new Date(b.created_at) - new Date(a.created_at);
+      });
+
+    res.json(rankedRides);
   } catch (error) {
     res.status(500).json({ error: "Database connection failed", details: error.message });
   }

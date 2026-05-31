@@ -29,7 +29,7 @@ supabase
       io.emit('rides-update', payload);
     })
   .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' },
-    (payload) => {
+    () => {
       console.log('New message detected');
     })
   .subscribe((status) => {
@@ -40,10 +40,14 @@ supabase
 const rideRoutes = require('./routes/rides');
 const messageRoutes = require('./routes/messages');
 const profileRoutes = require('./routes/profileRoutes');
+const followsRoutes = require('./routes/follows');
+const usersRoutes = require('./routes/users');
 
 app.use('/api/rides', rideRoutes);
 app.use('/api/messages', messageRoutes);
-app.use('/api/profile', profileRoutes);  
+app.use('/api/profile', profileRoutes);
+app.use('/api/follows', followsRoutes);
+app.use('/api/users', usersRoutes);
 
 const PORT = 3001;
 server.listen(PORT, () => {

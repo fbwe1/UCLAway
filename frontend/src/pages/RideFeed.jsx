@@ -1,12 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { io } from 'socket.io-client';
 import RideCard from '../components/RideCard';
 
-// Socket is passed in from App.jsx — only used if provided, falls back to local
-// TODO: remove local socket creation once all pages receive socket from App.jsx
-const buildRidesUrl = (filters = {}) => {
+const buildRidesUrl = (filters = {}, viewerUserId) => {
   const params = new URLSearchParams();
 
+  if (viewerUserId) params.append('viewerUserId', viewerUserId);
   if (filters.pickupLocation) params.append('pickupLocation', filters.pickupLocation);
   if (filters.destination) params.append('destination', filters.destination);
   if (filters.departureDate) params.append('departureDate', filters.departureDate);
@@ -35,7 +33,7 @@ function RideFeed({ currentUserId, socket }) {
 
   const fetchRides = (filters = activeFiltersRef.current) => {
     setLoading(true);
-    fetch(buildRidesUrl(filters))
+    fetch(buildRidesUrl(filters, currentUserId))
       .then(res => res.json())
       .then(data => {
         setRides(Array.isArray(data) ? data : []);
@@ -73,7 +71,7 @@ function RideFeed({ currentUserId, socket }) {
     });
 
     return () => socket.off('rides-update');
-  }, []);
+  }, [currentUserId, socket]);
 
   const applyFilters = () => {
     const filters = {};

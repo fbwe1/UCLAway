@@ -2,15 +2,18 @@ import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 
 const RideCard = ({ ride, currentUserId, onUpdate }) => {
-  if (!ride) return null;
-
   const navigate = useNavigate();
   const [removing, setRemoving] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
+  const [followOverride, setFollowOverride] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
+
+  if (!ride) return null;
 
   const currentUserIdNumber = Number(currentUserId);
   const creatorUserIdNumber = Number(ride.creator_user_id);
   const isCreator = creatorUserIdNumber === currentUserIdNumber;
+  const isFollowingCreator = followOverride ?? Boolean(ride.is_followed_creator);
 
   const availableSeats = Number(ride.available_seats ?? 0);
   const isFull = availableSeats <= 0;
@@ -19,8 +22,6 @@ const RideCard = ({ ride, currentUserId, onUpdate }) => {
     : false;
 
   const statusText = hasDeparted ? 'Departed' : isFull ? 'Full' : `Missing ${availableSeats}`;
-  const statusColor = hasDeparted ? '#888' : isFull ? '#f0a500' : '#2196F3';
-
   const formatDateTime = (value) => {
     if (!value) return null;
     const date = new Date(value);
@@ -60,6 +61,52 @@ const RideCard = ({ ride, currentUserId, onUpdate }) => {
     }
   };
 
+  const handleFollowToggle = async (e) => {
+    e.stopPropagation();
+    if (isCreator) return;
+
+    setFollowLoading(true);
+    setErrorMsg('');
+    const currentlyFollowing = isFollowingCreator;
+
+    try {
+      const response = await fetch(
+        currentlyFollowing
+          ? `http://localhost:3001/api/follows/${ride.creator_user_id}`
+          : 'http://localhost:3001/api/follows',
+        {
+          method: currentlyFollowing ? 'DELETE' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(
+            currentlyFollowing
+              ? { followerUserId: currentUserId }
+              : { followerUserId: currentUserId, followedUserId: ride.creator_user_id }
+          )
+        }
+      );
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (!currentlyFollowing && response.status === 409) {
+          setFollowOverride(true);
+          onUpdate();
+        } else if (currentlyFollowing && response.status === 404) {
+          setFollowOverride(false);
+          onUpdate();
+        } else {
+          setErrorMsg(data.error || 'Failed to update follow status');
+        }
+      } else {
+        setFollowOverride(!currentlyFollowing);
+        onUpdate();
+      }
+    } catch {
+      setErrorMsg('Failed to connect to the backend server.');
+    } finally {
+      setFollowLoading(false);
+    }
+  };
+
   const passengers = Array.isArray(ride.passengers) ? ride.passengers : [];
   const riderCount = passengers.length + 1;
 
@@ -76,6 +123,9 @@ const RideCard = ({ ride, currentUserId, onUpdate }) => {
         </div>
 
         <div className="card-badges">
+          {isFollowingCreator && !isCreator && (
+            <span className="follow-chip">Following</span>
+          )}
           <span className="trip-badge">
             {ride.is_round_trip ? 'Round Trip' : 'One Way'}
           </span>
@@ -102,6 +152,17 @@ const RideCard = ({ ride, currentUserId, onUpdate }) => {
       </div>
 
       {ride.description && <p className="post-note">{ride.description}</p>}
+
+      {!isCreator && (
+        <button
+          type="button"
+          onClick={handleFollowToggle}
+          disabled={followLoading}
+          className={isFollowingCreator ? "follow-button-following" : "follow-button"}
+        >
+          {followLoading ? 'Updating...' : isFollowingCreator ? 'Following' : 'Follow Creator'}
+        </button>
+      )}
 
       <p className="muted" style={{ fontSize: '12px', marginTop: '6px' }}>
         Click to view details →

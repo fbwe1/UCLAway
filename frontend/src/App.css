@@ -210,6 +210,16 @@ textarea {
   color: #1d4ed8;
 }
 
+.follow-chip {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: #dcfce7;
+  color: #166534;
+}
+
 .passenger-list {
   margin-top: 14px;
   padding-top: 12px;
@@ -261,6 +271,30 @@ textarea {
   font-weight: 600;
 }
 
+.follow-button {
+  width: 100%;
+  border: none;
+  border-radius: 14px;
+  padding: 12px;
+  background: #16a34a;
+  color: white;
+  cursor: pointer;
+  font-weight: 700;
+  margin-top: 8px;
+}
+
+.follow-button-following {
+  width: 100%;
+  border: 1px solid #bbf7d0;
+  border-radius: 14px;
+  padding: 12px;
+  background: #f0fdf4;
+  color: #166534;
+  cursor: pointer;
+  font-weight: 700;
+  margin-top: 8px;
+}
+
 .secondary-button {
   width: 100%;
   border: 1px solid #d1d5db;
@@ -288,7 +322,9 @@ textarea {
 .join-button:disabled,
 .primary-button:disabled,
 .secondary-button:disabled,
-.danger-button:disabled {
+.danger-button:disabled,
+.follow-button:disabled,
+.follow-button-following:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
@@ -347,6 +383,31 @@ textarea {
   padding: 18px;
   border-radius: 18px;
   border: 1px solid #e5e7eb;
+}
+
+.search-users-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+}
+
+.search-users-row .primary-button {
+  margin-top: 0;
+  width: auto;
+  padding-inline: 18px;
+}
+
+.user-result-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-id {
+  margin: 0;
+  font-weight: 700;
+  color: #111827;
 }
 
 /* Create ride form */

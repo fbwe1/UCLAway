@@ -6,6 +6,7 @@ import CreateRide from './pages/CreateRide';
 import RideDetail from './pages/RideDetail';
 import Conversation from './pages/Conversation';
 import Messages from './pages/Messages';
+import SearchUsers from './pages/SearchUsers';
 import Profile from './Profile';
 import BottomNav from './components/BottomNav';
 import './App.css';
@@ -43,6 +44,7 @@ function App() {
 
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
             <Link to="/" style={{ textDecoration: 'none', color: '#333', fontWeight: 'bold' }}>Feed</Link>
+            <Link to="/search" style={{ textDecoration: 'none', color: '#333', fontWeight: 'bold' }}>Search</Link>
             <Link to="/messages" style={{ textDecoration: 'none', color: '#333', fontWeight: 'bold' }}>Messages</Link>
             <Link to="/create" style={{
               textDecoration: 'none',
@@ -61,6 +63,7 @@ function App() {
         <div style={{ padding: '0 20px' }}>
           <Routes>
             <Route path="/" element={<RideFeed currentUserId={currentUserId} socket={socket} />} />
+            <Route path="/search" element={<SearchUsers currentUserId={currentUserId} />} />
             <Route path="/create" element={<CreateRide currentUserId={currentUserId} />} />
             <Route path="/rides/:id" element={<RideDetail currentUserId={currentUserId} socket={socket} />} />
             <Route path="/messages" element={<Messages currentUserId={currentUserId} socket={socket} />} />
