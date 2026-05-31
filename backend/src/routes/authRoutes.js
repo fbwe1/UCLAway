@@ -7,6 +7,7 @@ const router = express.Router()
 router.post("/signup", async (req, res) => {
     //baseline regex email verification step (todo: need another layer of verification)
     const uclaEmailRegex = /^[A-Za-z0-9._%+-]+@(g\.)?ucla\.edu$/i;
+    const complexPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])/;
     // implemented main logic, but still needs more error handling + bug fixes, maybe login w/ google as well
     try{
         //account details
@@ -15,6 +16,12 @@ router.post("/signup", async (req, res) => {
             return res.status(400).json({
                 status:false,
                 message: "Please use a valid UCLA email address"
+            })
+        }
+        if(!complexPasswordRegex.test(password)){
+            return res.status(400).json({
+                status:false,
+                message: "You need to make a more complex password"
             })
         }
         const { data, error } = await supabase.auth.signUp(

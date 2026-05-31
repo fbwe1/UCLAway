@@ -60,7 +60,7 @@ test("signup creates an account with valid UCLA account information", async () =
         username: "newuser",
         full_name: "New User",
         ucla_email: "newuser@g.ucla.edu",
-        password: "password123"
+        password: "Password123!"
     });
 
     assert.equal(response.status, 200);
@@ -70,7 +70,7 @@ test("signup creates an account with valid UCLA account information", async () =
     });
     assert.equal(signUpCalls.length, 1);
     assert.equal(signUpCalls[0].email, "newuser@g.ucla.edu");
-    assert.equal(signUpCalls[0].password, "password123");
+    assert.equal(signUpCalls[0].password, "Password123!");
     assert.deepEqual(signUpCalls[0].options.data, {
         first_name: "New User",
         username: "newuser"
@@ -91,7 +91,7 @@ test("signup rejects non-UCLA email addresses before creating an account", async
     const response = await request(router, "/signup", {
         username: "newuser",
         ucla_email: "newuser@example.com",
-        password: "password123"
+        password: "Password123!"
     });
 
     assert.equal(response.status, 400);
@@ -115,7 +115,7 @@ test("signup returns an error when Supabase rejects account creation", async () 
     const response = await request(router, "/signup", {
         username: "existinguser",
         ucla_email: "existinguser@ucla.edu",
-        password: "password123"
+        password: "Password123!"
     });
 
     assert.equal(response.status, 200);
