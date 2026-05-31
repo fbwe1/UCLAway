@@ -485,6 +485,12 @@ textarea {
   margin-top: 8px;
 }
 
+.signin-container.button:disabled {
+  background: #d1d5db;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+
 .back-to-login-button {
   border: 1px solid #d1d5db;
   border-radius: 10px;

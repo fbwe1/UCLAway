@@ -8,6 +8,7 @@ export default function Login({ onCreateAccount, onLogin }) {
         password: ""
     })
     const [message, setMessage] = useState("");
+    const canLogin = loginData.ucla_email.length > 0 && loginData.password.length > 0;
 
     async function handleLogin(e) {
         e.preventDefault();
@@ -46,7 +47,7 @@ export default function Login({ onCreateAccount, onLogin }) {
                     Password: <input type="password" placeholder="Password"
                     onChange={e => setLoginData({...loginData, password: e.target.value})}/>
                 </div>
-                <button type="submit" className="signin-container button">
+                <button type="submit" className="signin-container button" disabled={!canLogin}>
                     Login
                 </button>
                 <button type="button" className="signin-container button" onClick={onCreateAccount}>
