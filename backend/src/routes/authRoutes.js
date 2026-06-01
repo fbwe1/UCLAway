@@ -5,10 +5,9 @@ const router = express.Router()
 
 // sign up route
 router.post("/signup", async (req, res) => {
-    //baseline regex email verification step (todo: need another layer of verification)
+    // credential verification
     const uclaEmailRegex = /^[A-Za-z0-9._%+-]+@(g\.)?ucla\.edu$/i;
     const complexPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])/;
-    // implemented main logic, but still needs more error handling + bug fixes, maybe login w/ google as well
     try{
         //account details
         const {username, full_name, ucla_email, password} = req.body;
@@ -74,5 +73,24 @@ router.post("/login", async (req,res) =>{
     }
 })
 
-//export so that auth can be used in the app
+router.post("/forgot-password", async (req, res) => {
+    try {
+        const { ucla_email } = req.body;
+        const redirectTo = `${process.env.FRONTEND_URL || "http://localhost:5173"}/reset-password`;
+        const { error } = await supabase.auth.resetPasswordForEmail(ucla_email, {
+            redirectTo,
+        });
+        if (error) {
+            console.log("Supabase password reset error:", error.message);
+        }
+        return res.json({
+            status: true,
+            message: "If an account exists, check your email."
+        });
+    } catch(error) {
+        console.log(error);
+        return res.status(400).send(error.message);
+    }
+})
+
 module.exports=router; 

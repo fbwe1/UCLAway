@@ -10,6 +10,7 @@ import Profile from './Profile';
 import BottomNav from './components/BottomNav';
 import Login from './pages/login.jsx';
 import Signup from './pages/signup.jsx';
+import ForgotPassword from './pages/ForgotPassword.jsx';
 import './App.css';
 
 const socket = io('http://localhost:3001');
@@ -31,13 +32,20 @@ function App() {
   }
 
   if (!currentUserEmail) {
-    return currentPage === 'login' ? (
+    if (currentPage === 'signup') {
+      return <Signup onBackToLogin={() => setCurrentPage('login')} />;
+    }
+
+    if (currentPage === 'forgot-password') {
+      return <ForgotPassword onBackToLogin={() => setCurrentPage('login')} />;
+    }
+
+    return (
       <Login
         onCreateAccount={() => setCurrentPage('signup')}
+        onForgotPassword={() => setCurrentPage('forgot-password')}
         onLogin={handleLogin}
       />
-    ) : (
-      <Signup onBackToLogin={() => setCurrentPage('login')} />
     );
   }
 

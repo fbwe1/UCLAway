@@ -197,3 +197,31 @@ test("login returns an error when credentials are incorrect", async () => {
         message: "User Not Found"
     });
 });
+
+test("forgot password sends a reset email request", async () => {
+    const resetCalls = [];
+    const router = createAuthRoutes({
+        auth: {
+            resetPasswordForEmail: async (email, options) => {
+                resetCalls.push({ email, options });
+                return { data: {}, error: null };
+            }
+        }
+    });
+
+    const response = await request(router, "/forgot-password", {
+        ucla_email: "newuser@ucla.edu"
+    });
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(response.body, {
+        status: true,
+        message: "If an account exists, check your email."
+    });
+    assert.deepEqual(resetCalls[0], {
+        email: "newuser@ucla.edu",
+        options: {
+            redirectTo: "http://localhost:5173/reset-password"
+        }
+    });
+});

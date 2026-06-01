@@ -2,7 +2,7 @@ import React from 'react'
 import '../App.css'
 import { useState } from 'react'
 
-export default function Login({ onCreateAccount, onLogin }) {
+export default function Login({ onCreateAccount, onForgotPassword, onLogin }) {
     const [loginData, setLoginData] = useState({
         ucla_email: "",
         password: ""
@@ -53,7 +53,7 @@ export default function Login({ onCreateAccount, onLogin }) {
                 <button type="button" className="signin-container button" onClick={onCreateAccount}>
                     Not registered? Create an account!
                 </button>
-                <button type="button" className="signin-container button">
+                <button type="button" className="signin-container button" onClick={onForgotPassword}>
                     Forgot password?
                 </button>
                 {message && <p className="auth-message">{message}</p>}
