@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const supabase = require('../supabaseclient');
+const supabase = require('../supabaseClient');
 
 /*
   DIRECT MESSAGES ARCHITECTURE
