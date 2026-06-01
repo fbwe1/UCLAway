@@ -19,7 +19,6 @@ app.set('io', io);
 app.get("/", (req, res) => {
   res.send("UCLAway backend is running");
 });
-
 // ─── Supabase real-time listeners ─────────────────────────────────────────────
 supabase
   .channel('db-changes')
@@ -35,7 +34,6 @@ supabase
   .subscribe((status) => {
     console.log('Supabase realtime status:', status);
   });
-
 // Routes
 const authRoutes = require('./routes/authRoutes');
 const rideRoutes = require('./routes/rides');

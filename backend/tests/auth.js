@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const supabasePath = require.resolve("../src/configs/supabaseClient.js");
-const authRoutesPath = require.resolve("../src/routes/authRoutes.js");
+const supabasePath = require.resolve("../supabaseclient.js");
+const authRoutesPath = require.resolve("../routes/authRoutes.js");
 
 function createAuthRoutes(mockSupabase) {
     delete require.cache[authRoutesPath];
@@ -11,7 +11,7 @@ function createAuthRoutes(mockSupabase) {
         loaded: true,
         exports: mockSupabase
     };
-    return require("../src/routes/authRoutes.js");
+    return require("../routes/authRoutes.js");
 }
 async function request(router, path, body) {
     const routeLayer = router.stack.find((layer) => layer.route.path === path);
