@@ -1,6 +1,5 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-
 const supabasePath = require.resolve("../src/configs/supabaseClient.js");
 const authRoutesPath = require.resolve("../src/routes/authRoutes.js");
 
@@ -12,10 +11,8 @@ function createAuthRoutes(mockSupabase) {
         loaded: true,
         exports: mockSupabase
     };
-
     return require("../src/routes/authRoutes.js");
 }
-
 async function request(router, path, body) {
     const routeLayer = router.stack.find((layer) => layer.route.path === path);
     const postLayer = routeLayer.route.stack.find((layer) => layer.method === "post");
@@ -36,15 +33,12 @@ async function request(router, path, body) {
             return this;
         }
     };
-
     await postLayer.handle(req, res);
-
     return {
         status: res.statusCode,
         body: res.body
     };
 }
-
 test("signup creates an account with valid UCLA account information", async () => {
     const signUpCalls = [];
     const router = createAuthRoutes({
@@ -55,14 +49,12 @@ test("signup creates an account with valid UCLA account information", async () =
             }
         }
     });
-
     const response = await request(router, "/signup", {
         username: "newuser",
         full_name: "New User",
         ucla_email: "newuser@g.ucla.edu",
         password: "Password123!"
     });
-
     assert.equal(response.status, 200);
     assert.deepEqual(response.body, {
         status: true,
@@ -76,7 +68,6 @@ test("signup creates an account with valid UCLA account information", async () =
         username: "newuser"
     });
 });
-
 test("signup rejects non-UCLA email addresses before creating an account", async () => {
     let signUpWasCalled = false;
     const router = createAuthRoutes({
@@ -87,13 +78,11 @@ test("signup rejects non-UCLA email addresses before creating an account", async
             }
         }
     });
-
     const response = await request(router, "/signup", {
         username: "newuser",
         ucla_email: "newuser@example.com",
         password: "Password123!"
     });
-
     assert.equal(response.status, 400);
     assert.deepEqual(response.body, {
         status: false,
@@ -101,7 +90,6 @@ test("signup rejects non-UCLA email addresses before creating an account", async
     });
     assert.equal(signUpWasCalled, false);
 });
-
 test("signup rejects passwords that are not complex enough before creating an account", async () => {
     let signUpWasCalled = false;
     const router = createAuthRoutes({
@@ -112,13 +100,11 @@ test("signup rejects passwords that are not complex enough before creating an ac
             }
         }
     });
-
     const response = await request(router, "/signup", {
         username: "newuser",
         ucla_email: "newuser@ucla.edu",
         password: "password123"
     });
-
     assert.equal(response.status, 400);
     assert.deepEqual(response.body, {
         status: false,
@@ -126,7 +112,6 @@ test("signup rejects passwords that are not complex enough before creating an ac
     });
     assert.equal(signUpWasCalled, false);
 });
-
 test("signup returns an error when Supabase rejects account creation", async () => {
     const router = createAuthRoutes({
         auth: {
@@ -136,20 +121,17 @@ test("signup returns an error when Supabase rejects account creation", async () 
             })
         }
     });
-
     const response = await request(router, "/signup", {
         username: "existinguser",
         ucla_email: "existinguser@ucla.edu",
         password: "Password123!"
     });
-
     assert.equal(response.status, 200);
     assert.deepEqual(response.body, {
         status: false,
         message: "already exists"
     });
 });
-
 test("login grants access with correct UCLA email and password", async () => {
     const signInCalls = [];
     const router = createAuthRoutes({
@@ -160,7 +142,6 @@ test("login grants access with correct UCLA email and password", async () => {
             }
         }
     });
-
     const response = await request(router, "/login", {
         ucla_email: "newuser@ucla.edu",
         password: "password123"
@@ -175,7 +156,6 @@ test("login grants access with correct UCLA email and password", async () => {
         password: "password123"
     });
 });
-
 test("login returns an error when credentials are incorrect", async () => {
     const router = createAuthRoutes({
         auth: {
@@ -197,8 +177,8 @@ test("login returns an error when credentials are incorrect", async () => {
         message: "User Not Found"
     });
 });
-
-test("forgot password sends a reset email request", async () => {
+// forgot password
+test("forgot password sends the reset email request", async () => {
     const resetCalls = [];
     const router = createAuthRoutes({
         auth: {
@@ -208,15 +188,13 @@ test("forgot password sends a reset email request", async () => {
             }
         }
     });
-
     const response = await request(router, "/forgot-password", {
         ucla_email: "newuser@ucla.edu"
     });
-
     assert.equal(response.status, 200);
     assert.deepEqual(response.body, {
         status: true,
-        message: "If an account exists, check your email."
+        message: "If your account exists, check your email inbox."
     });
     assert.deepEqual(resetCalls[0], {
         email: "newuser@ucla.edu",

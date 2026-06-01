@@ -1,7 +1,6 @@
 const express = require("express");
-const supabase = require('../configs/supabaseClient.js');
+const supabase = require('../supabaseclient.js');
 const router = express.Router()
-
 
 // sign up route
 router.post("/signup", async (req, res) => {
@@ -14,13 +13,13 @@ router.post("/signup", async (req, res) => {
         if(!uclaEmailRegex.test(ucla_email)){
             return res.status(400).json({
                 status:false,
-                message: "Please use a valid UCLA email address."
+                message: "Please use a valid UCLA email address!"
             })
         }
         if(!complexPasswordRegex.test(password)){
             return res.status(400).json({
                 status:false,
-                message: "You need to make a more complex password."
+                message: "You need to make a more complex password!"
             })
         }
         const { data, error } = await supabase.auth.signUp(
@@ -38,19 +37,18 @@ router.post("/signup", async (req, res) => {
         if(error){
             console.log("Supabase signup error:", error.message);
             return res.json({
-                status:false, 
-                message: error.message || "Signup failed"})
+                status:false,
+                message: error.message || "Signup failed."})
         }
         else{
             return res.json({
-                status:true, 
-                message : "User Was Created Successfully"})
+                status:true,
+                message : "User Was Created Successfully!"})
         }
     }catch(error){
         console.log(error);
         return res.status(400).send(error.message);
     }
-
 })
 // login route
 router.post("/login", async (req,res) =>{
@@ -62,12 +60,12 @@ router.post("/login", async (req,res) =>{
       })
       if (error){
         return res.json({
-            status:false, 
+            status:false,
             message: "User Not Found"})
       }else{
         return res.status(200).json({success: true})
       }
-    } catch(error){ 
+    } catch(error){
         console.log(error)
         return res.status(400).send(error.message)
     }
@@ -92,4 +90,4 @@ router.post("/forgot-password", async (req, res) => {
     }
 })
 
-module.exports=router; 
+module.exports=router;

@@ -4,8 +4,7 @@ const express = require("express");
 const cors = require("cors");
 const http = require("http");
 const { Server } = require("socket.io");
-const supabase = require("../supabaseclient");
-const authRoutes = require("./routes/authRoutes");
+const supabase = require("./supabaseclient");
 
 const app = express();
 const server = http.createServer(app);
@@ -38,9 +37,10 @@ supabase
   });
 
 // Routes
-const rideRoutes = require('../routes/rides');
-const messageRoutes = require('../routes/messages');
-const profileRoutes = require('../routes/profileRoutes');
+const authRoutes = require('./routes/authRoutes');
+const rideRoutes = require('./routes/rides');
+const messageRoutes = require('./routes/messages');
+const profileRoutes = require('./routes/profileRoutes');
 
 app.use('/auth', authRoutes);
 app.use('/api/rides', rideRoutes);
