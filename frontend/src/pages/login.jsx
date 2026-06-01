@@ -37,8 +37,8 @@ export default function Login({ onCreateAccount, onForgotPassword, onLogin }) {
     }
 
     return (
-        <div className="login-container">
-            <form onSubmit={handleLogin}>
+        <div className="login-container login-page">
+            <form className="login-form" onSubmit={handleLogin}>
                 <div className="input">
                     UCLA Email: <input type="text" placeholder="UCLA-affiliated email"
                     onChange={e => setLoginData({...loginData, ucla_email: e.target.value})}/>

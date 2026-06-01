@@ -435,6 +435,7 @@ textarea {
 
 /* Login / Signup */
 .login-container {
+  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -444,6 +445,22 @@ textarea {
   gap: 16px;
 }
 
+.login-container.login-page {
+  overflow: hidden;
+}
+
+.login-container.login-page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url('/logo.svg');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 1174px;
+  opacity: 0.12;
+  pointer-events: none;
+}
+
 .login-container form {
   background: white;
   border: 1px solid #e5e7eb;
@@ -451,6 +468,12 @@ textarea {
   padding: 24px;
   width: min(360px, calc(100% - 36px));
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.login-container .login-form {
+  position: relative;
+  z-index: 1;
+  background: transparent;
 }
 
 .login-container .input {
