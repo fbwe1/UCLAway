@@ -14,13 +14,13 @@ router.post("/signup", async (req, res) => {
         if(!uclaEmailRegex.test(ucla_email)){
             return res.status(400).json({
                 status:false,
-                message: "Please use a valid UCLA email address"
+                message: "Please use a valid UCLA email address."
             })
         }
         if(!complexPasswordRegex.test(password)){
             return res.status(400).json({
                 status:false,
-                message: "You need to make a more complex password"
+                message: "You need to make a more complex password."
             })
         }
         const { data, error } = await supabase.auth.signUp(
@@ -72,7 +72,6 @@ router.post("/login", async (req,res) =>{
         return res.status(400).send(error.message)
     }
 })
-
 router.post("/forgot-password", async (req, res) => {
     try {
         const { ucla_email } = req.body;
@@ -85,7 +84,7 @@ router.post("/forgot-password", async (req, res) => {
         }
         return res.json({
             status: true,
-            message: "If an account exists, check your email."
+            message: "If your account exists, check your email!"
         });
     } catch(error) {
         console.log(error);
