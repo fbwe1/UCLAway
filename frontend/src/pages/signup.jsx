@@ -3,8 +3,6 @@ import '../App.css'
 import { useState } from 'react'
 
 export default function Signup({ onBackToLogin }) {
-    //json structure to send to backend
-    //user data (tentative, just for testing)
     const [userData, setuserData] = useState({ 
         username: "",
         first_name: "",
@@ -17,7 +15,6 @@ export default function Signup({ onBackToLogin }) {
 
     async function handleData(e){
         e.preventDefault();
-        //don't execute until click signup, then send usr credentials to auth routes
         const signupData = {
             ...userData,
             full_name: `${userData.first_name} ${userData.last_name}`.trim(),
@@ -37,7 +34,7 @@ export default function Signup({ onBackToLogin }) {
             setMessage(data.message || "Signup complete.");
         } catch (error) {
             console.error("signup req failed:", error);
-            setMessage("Could not connect to the server.");
+            setMessage("Couldn't connect to the server.");
         }
     }
     return (
