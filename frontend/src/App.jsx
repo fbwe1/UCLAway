@@ -11,6 +11,7 @@ import BottomNav from './components/BottomNav';
 import Login from './pages/login.jsx';
 import Signup from './pages/signup.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
+import ResetPassword from './pages/ResetPassword.jsx';
 import './App.css';
 
 const socket = io('http://localhost:3001');
@@ -19,27 +20,27 @@ const params = new URLSearchParams(window.location.search);
 const currentUserId = parseInt(params.get('userId')) || 251;
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('login');
+  const startingPage = window.location.pathname === '/reset-password' ? 'reset-password' : 'login';
+  const [currentPage, setCurrentPage] = useState(startingPage);
   const [currentUserEmail, setCurrentUserEmail] = useState('');
 
   function handleLogin(uclaEmail) {
     setCurrentUserEmail(uclaEmail);
   }
-
   function handleLogout() {
     setCurrentUserEmail('');
     setCurrentPage('login');
   }
-
   if (!currentUserEmail) {
     if (currentPage === 'signup') {
       return <Signup onBackToLogin={() => setCurrentPage('login')} />;
     }
-
     if (currentPage === 'forgot-password') {
       return <ForgotPassword onBackToLogin={() => setCurrentPage('login')} />;
     }
-
+    if (currentPage === 'reset-password') {
+      return <ResetPassword onBackToLogin={() => setCurrentPage('login')} />;
+    }
     return (
       <Login
         onCreateAccount={() => setCurrentPage('signup')}
@@ -48,7 +49,6 @@ function App() {
       />
     );
   }
-
   return (
     <BrowserRouter>
       <div style={{ paddingBottom: '70px', fontFamily: 'sans-serif' }}>
