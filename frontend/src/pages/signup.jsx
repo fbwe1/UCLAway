@@ -44,7 +44,7 @@ export default function Signup({ onBackToLogin }) {
                     Go back to login
                 </button>
                 <div className="input">
-                    UCLA Email: <input type="text" placeholder="UCLA-affiliated email"
+                    UCLA Email: <input type="text" placeholder="UCLA email"
                     onChange={e => setuserData({...userData, ucla_email: e.target.value})}/>
                 </div>
                 <div className="input">

@@ -1,7 +1,6 @@
 import React from 'react'
 import '../App.css'
 import { useState } from 'react'
-
 export default function Login({ onCreateAccount, onForgotPassword, onLogin }) {
     const [loginData, setLoginData] = useState({
         ucla_email: "",
@@ -9,10 +8,8 @@ export default function Login({ onCreateAccount, onForgotPassword, onLogin }) {
     })
     const [message, setMessage] = useState("");
     const canLogin = loginData.ucla_email.length > 0 && loginData.password.length > 0;
-
     async function handleLogin(e) {
         e.preventDefault();
-
         try {
             const res = await fetch("http://localhost:3001/auth/login", {
                 method: "POST",
@@ -21,26 +18,23 @@ export default function Login({ onCreateAccount, onForgotPassword, onLogin }) {
                 },
                 body: JSON.stringify(loginData),
             });
-
             const data = await res.json();
-
             if (data.success) {
                 setMessage("Login successful!");
                 onLogin(loginData.ucla_email);
             } else {
-                setMessage(data.message || "Login failed. Please try again.");
+                setMessage(data.message || "Login failed... Please try again.");
             }
         } catch (error) {
             console.error("login req failed:", error);
-            setMessage("Could not connect to the server.");
+            setMessage("Couldn't connect to the server.");
         }
     }
-
     return (
         <div className="login-container login-page">
             <form className="login-form" onSubmit={handleLogin}>
                 <div className="input">
-                    UCLA Email: <input type="text" placeholder="UCLA-affiliated email"
+                    UCLA Email: <input type="text" placeholder="UCLA email"
                     onChange={e => setLoginData({...loginData, ucla_email: e.target.value})}/>
                 </div>
                 <div className="input">
