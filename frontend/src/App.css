@@ -449,12 +449,29 @@ textarea {
 
 /* Login / Signup */
 .login-container {
+  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
   gap: 16px;
+}
+
+.login-container.login-page {
+  overflow: hidden;
+}
+
+.login-container.login-page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url('/logo.svg');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 1174px;
+  opacity: 0.12;
+  pointer-events: none;
 }
 
 .login-container form {
@@ -464,6 +481,12 @@ textarea {
   padding: 24px;
   width: min(360px, calc(100% - 36px));
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.login-container .login-form {
+  position: relative;
+  z-index: 1;
+  background: transparent;
 }
 
 .login-container .input {
@@ -496,6 +519,30 @@ textarea {
   cursor: pointer;
   font-weight: 600;
   margin-top: 8px;
+}
+
+.signin-container.button:disabled {
+  background: #d1d5db;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+
+.back-to-login-button {
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: white;
+  color: #374151;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  padding: 7px 10px;
+}
+
+.auth-message {
+  margin-top: 12px;
+  font-size: 15px;
+  text-align: center;
 }
 
 /* Mobile */
