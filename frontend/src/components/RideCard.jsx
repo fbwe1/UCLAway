@@ -2,24 +2,30 @@ import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 
 const RideCard = ({ ride, currentUserId, onUpdate }) => {
-  if (!ride) return null;
-
   const navigate = useNavigate();
   const [removing, setRemoving] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  if (!ride) return null;
 
   const currentUserIdNumber = Number(currentUserId);
   const creatorUserIdNumber = Number(ride.creator_user_id);
   const isCreator = creatorUserIdNumber === currentUserIdNumber;
 
   const availableSeats = Number(ride.available_seats ?? 0);
+  const totalSeats = Number(ride.total_seats ?? 0);
   const isFull = availableSeats <= 0;
   const hasDeparted = ride.departure_time
     ? new Date(ride.departure_time) <= new Date()
     : false;
 
-  const statusText = hasDeparted ? 'Departed' : isFull ? 'Full' : `Missing ${availableSeats}`;
-  const statusColor = hasDeparted ? '#888' : isFull ? '#f0a500' : '#2196F3';
+  const statusText = hasDeparted
+  ? 'Departed'
+  : isFull
+    ? 'Full'
+    : `Missing ${availableSeats}`;
+
+  const statusClass = isFull || hasDeparted ? 'status full' : 'status open';
 
   const formatDateTime = (value) => {
     if (!value) return null;
@@ -34,6 +40,10 @@ const RideCard = ({ ride, currentUserId, onUpdate }) => {
       timeZone: 'America/Los_Angeles' // TODO: get from user profile after auth merges
     });
   };
+
+  const departureTime = formatDateTime(ride.departure_time);
+  const returnTime = formatDateTime(ride.return_time);
+  const postedTime = formatDateTime(ride.created_at);
 
   const handleRemoveRide = async (e) => {
     e.stopPropagation(); // prevent card click from navigating to detail
@@ -79,25 +89,25 @@ const RideCard = ({ ride, currentUserId, onUpdate }) => {
           <span className="trip-badge">
             {ride.is_round_trip ? 'Round Trip' : 'One Way'}
           </span>
-          <span className={isFull || hasDeparted ? 'status full' : 'status open'}>
+          <span className={statusClass}>
             {statusText}
           </span>
         </div>
       </div>
 
       <div className="post-details">
-        <p><strong>Riders:</strong> {riderCount} / {Number(ride.total_seats)}</p>
+        <p><strong>Riders:</strong> {riderCount} / {totalSeats}</p>
 
-        {formatDateTime(ride.departure_time) && (
-          <p><strong>Departure:</strong> {formatDateTime(ride.departure_time)}</p>
+        {departureTime && (
+          <p><strong>Departure:</strong> {departureTime}</p>
         )}
 
-        {ride.is_round_trip && formatDateTime(ride.return_time) && (
-          <p><strong>Return:</strong> {formatDateTime(ride.return_time)}</p>
+        {ride.is_round_trip && returnTime && (
+          <p><strong>Return:</strong> {returnTime}</p>
         )}
 
-        {formatDateTime(ride.created_at) && (
-          <p><strong>Posted:</strong> {formatDateTime(ride.created_at)}</p>
+        {postedTime && (
+          <p><strong>Posted:</strong> {postedTime}</p>
         )}
       </div>
 
