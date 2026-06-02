@@ -1,2 +1,55 @@
-# Project Abstract 
+### Project Overview
 Our project is a carpooling web application specifically for UCLA students to make ride-sharing easier, safer, and more efficient. Users can create public ride posts that include important details such as date, time range, pickup location, destination, and the number of available seats. Other students can view these posts and join rides with open seats. Every ride post also shows its current status, such as “missing 2” or “full,” so users can quickly see availability. In addition, each user has a profile page containing contact information, ride history, and the number of rides they have completed. Overall, this system provides UCLA students with a convenient way to coordinate transportation and connect with other students traveling in the same direction.
+
+### Here's a brief overview of our tech stack!
+# Frontend 
+- React.js
+- CSS
+- Fetch and Socket
+- React Router
+# Backend Architecture
+- Nodes.js & Express
+- Supabase
+
+### How to get started with UCLAWay!
+#Backend setup
+Navigate to backend directory
+`cd backend` 
+Install backend dependencies
+`npm install`
+Start up the UCLAway backend server
+`npm start`
+
+#Frontend setup
+Navigate to frontend directory
+`cd frontend`
+Install frontend dependencies
+`npm install`
+Start up the development server to view the UCLAway web frontend
+`npm run dev`
+
+#Supabase setup
+([ToDo: how to setup env vars for supabase])
+
+# Tests
+([ToDo: add steps here for how to run tests, functionalities testsed, etc.])
+
+### Features ([Todo: add all relevant/necessary features here])
+- Direct messaging (DM)
+- Create, join, and delete carpool groups
+- Login and Signup
+- Forgot Password
+- add more features below
+
+### User security and privacy ([Todo - add more details here])
+- RegEX credential verification (password and ucla email)
+- JSON Web Token (JWT) Authentication for users (currently in progress)
+
+Feel free to provide your input or feedback to our project!
+
+Built by the UCLAway team for CS35L Final Project.
+
+
+
+
+
