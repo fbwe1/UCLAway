@@ -1,10 +1,10 @@
 require("dotenv").config();
-
 const express = require("express");
 const cors = require("cors");
 const http = require("http");
 const { Server } = require("socket.io");
 const supabase = require("./supabaseclient");
+const { startCronJobs } = require("./cron");
 
 const app = express();
 const server = http.createServer(app);
@@ -43,9 +43,11 @@ const profileRoutes = require('./routes/profileRoutes');
 app.use('/auth', authRoutes);
 app.use('/api/rides', rideRoutes);
 app.use('/api/messages', messageRoutes);
-app.use('/api/profile', profileRoutes);  
+app.use('/api/profile', profileRoutes);
 
 const PORT = 3001;
 server.listen(PORT, () => {
   console.log(`Running on http://localhost:${PORT}`);
+});
+  startCronJobs(io); 
 });

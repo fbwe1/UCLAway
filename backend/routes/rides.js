@@ -12,19 +12,12 @@ router.get('/', async (req, res) => {
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (pickupLocation) {
-      query = query.ilike('pickup_location', `%${pickupLocation}%`);
-    }
+    if (pickupLocation) query = query.ilike('pickup_location', `%${pickupLocation}%`);
+    if (destination)    query = query.ilike('destination', `%${destination}%`);
 
-    if (destination) {
-      query = query.ilike('destination', `%${destination}%`);
-    }
-
-    // Filter by departure date — matches any ride departing on that day (LA timezone)
     if (departureDate) {
-      // Convert the date to a UTC range covering the full LA day
       const startOfDay = new Date(`${departureDate}T00:00:00-07:00`).toISOString();
-      const endOfDay = new Date(`${departureDate}T23:59:59-07:00`).toISOString();
+      const endOfDay   = new Date(`${departureDate}T23:59:59-07:00`).toISOString();
       query = query.gte('departure_time', startOfDay).lte('departure_time', endOfDay);
     }
 
@@ -36,24 +29,20 @@ router.get('/', async (req, res) => {
       query = query.gte('available_seats', minSeatsNumber);
     }
 
-    // Filter by trip type — 'true' for round trip, 'false' for one way
     if (isRoundTrip !== undefined && isRoundTrip !== '') {
       query = query.eq('is_round_trip', isRoundTrip === 'true');
     }
 
     const { data: rides, error } = await query;
-
-    if (error) {
-      console.error("SUPABASE ERROR DETAILS:", error.message, error.details, error.hint);
-      throw error;
-    }
+    if (error) throw error;
     res.json(rides);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: "Database connection failed", details: error.message });
   }
 });
 
-// GET ride history for a specific user (from ride_history table)
+// GET ride history for a specific user
 router.get('/history', async (req, res) => {
   try {
     const { userId } = req.query;
@@ -105,15 +94,11 @@ router.post('/', async (req, res) => {
     if (!title || !pickup_location || !destination || !total_seats || !creator_user_id || !departure_time) {
       return res.status(400).json({ error: "title, pickup_location, destination, total_seats, creator_user_id and departure_time are required" });
     }
-
     if (new Date(departure_time) <= new Date()) {
       return res.status(400).json({ error: "Departure time must be in the future" });
     }
-
-    if (is_round_trip && return_time) {
-      if (new Date(return_time) <= new Date(departure_time)) {
-        return res.status(400).json({ error: "Return time must be after departure time" });
-      }
+    if (is_round_trip && return_time && new Date(return_time) <= new Date(departure_time)) {
+      return res.status(400).json({ error: "Return time must be after departure time" });
     }
 
     const { data, error } = await supabase
@@ -136,6 +121,9 @@ router.post('/', async (req, res) => {
       .single();
 
     if (error) throw error;
+
+    req.app.get('io').emit('rides-update', { eventType: 'INSERT', new: data });
+
     res.status(201).json({ success: true, ride: data });
   } catch (error) {
     console.error(error);
@@ -154,7 +142,6 @@ router.put('/:rideId', async (req, res) => {
 
     const userIdInt = parseInt(userId);
 
-    // Verify creator
     const { data: ride, error: fetchError } = await supabase
       .from('rides')
       .select('creator_user_id, passengers')
@@ -166,28 +153,23 @@ router.put('/:rideId', async (req, res) => {
       return res.status(403).json({ error: 'Only the creator can edit this ride' });
     }
 
-    // Can't reduce seats below current passenger count + creator
     const passengerCount = (ride.passengers || []).length;
     if (parseInt(total_seats) < passengerCount + 1) {
       return res.status(400).json({
         error: `Cannot reduce seats below current passenger count (${passengerCount + 1})`
       });
     }
-
     if (new Date(departure_time) <= new Date()) {
       return res.status(400).json({ error: 'Departure time must be in the future' });
     }
-
-    if (is_round_trip && return_time) {
-      if (new Date(return_time) <= new Date(departure_time)) {
-        return res.status(400).json({ error: 'Return time must be after departure time' });
-      }
+    if (is_round_trip && return_time && new Date(return_time) <= new Date(departure_time)) {
+      return res.status(400).json({ error: 'Return time must be after departure time' });
     }
 
-    const newTotalSeats = parseInt(total_seats);
+    const newTotalSeats     = parseInt(total_seats);
     const newAvailableSeats = newTotalSeats - 1 - passengerCount;
 
-    const { error: updateError } = await supabase
+    const { data: updated, error: updateError } = await supabase
       .from('rides')
       .update({
         title,
@@ -200,9 +182,14 @@ router.put('/:rideId', async (req, res) => {
         is_round_trip: is_round_trip || false,
         return_time: is_round_trip ? return_time : null
       })
-      .eq('id', rideId);
+      .eq('id', rideId)
+      .select()
+      .single();
 
     if (updateError) throw updateError;
+
+    req.app.get('io').emit('rides-update', { eventType: 'UPDATE', new: updated });
+
     res.json({ success: true });
   } catch (error) {
     console.error(error);
@@ -211,36 +198,50 @@ router.put('/:rideId', async (req, res) => {
 });
 
 // POST join a ride
+// Uses optimistic concurrency — the update only succeeds if a seat is still
+// available and the user is not already a passenger. This replaces the
+// join_ride SQL RPC function without relying on any database-specific features.
 router.post('/:rideId/join', async (req, res) => {
   try {
-    const rideId = parseInt(req.params.rideId);
-    const { userId } = req.body;
-    const userIdInt = parseInt(userId);
+    const rideId    = parseInt(req.params.rideId);
+    const userIdInt = parseInt(req.body.userId);
 
     const { data: ride, error: fetchError } = await supabase
       .from('rides')
-      .select('creator_user_id, departure_time, removed_passengers')
+      .select('*')
       .eq('id', rideId)
       .single();
 
     if (fetchError || !ride) return res.status(404).json({ error: "Ride not found" });
-    if (ride.creator_user_id === userIdInt) {
+    if (ride.creator_user_id === userIdInt)
       return res.status(400).json({ error: "You cannot join your own ride" });
-    }
-    if (new Date(ride.departure_time) <= new Date()) {
+    if (new Date(ride.departure_time) <= new Date())
       return res.status(400).json({ error: "This ride has already departed" });
-    }
-    if (ride.removed_passengers && ride.removed_passengers.includes(userIdInt)) {
+    if (ride.removed_passengers && ride.removed_passengers.includes(userIdInt))
       return res.status(403).json({ error: "You have been removed from this ride by the creator" });
-    }
+    if (ride.passengers && ride.passengers.includes(userIdInt))
+      return res.status(400).json({ error: "Already joined" });
+    if (ride.available_seats <= 0)
+      return res.status(400).json({ error: "Ride is full" });
 
-    const { data, error } = await supabase.rpc('join_ride', {
-      p_ride_id: rideId,
-      p_user_id: userIdInt
-    });
+    // Conditional update: only updates if available_seats is still > 0
+    // and user is not already a passenger. Guards against race conditions.
+    const { data: updated, error: updateError } = await supabase
+      .from('rides')
+      .update({
+        available_seats: ride.available_seats - 1,
+        passengers: [...(ride.passengers || []), userIdInt]
+      })
+      .eq('id', rideId)
+      .gt('available_seats', 0)
+      .not('passengers', 'cs', `{${userIdInt}}`)
+      .select();
 
-    if (error) throw error;
-    if (data.error) return res.status(400).json({ error: data.error });
+    if (updateError) throw updateError;
+    if (!updated || updated.length === 0)
+      return res.status(400).json({ error: "Ride is full or you have already joined" });
+
+    req.app.get('io').emit('rides-update', { eventType: 'UPDATE', new: updated[0] });
 
     res.json({ success: true });
   } catch (error) {
@@ -252,9 +253,8 @@ router.post('/:rideId/join', async (req, res) => {
 // POST leave a ride
 router.post('/:rideId/leave', async (req, res) => {
   try {
-    const rideId = parseInt(req.params.rideId);
-    const { userId } = req.body;
-    const userIdInt = parseInt(userId);
+    const rideId    = parseInt(req.params.rideId);
+    const userIdInt = parseInt(req.body.userId);
 
     const { data: ride, error: fetchError } = await supabase
       .from('rides')
@@ -263,22 +263,24 @@ router.post('/:rideId/leave', async (req, res) => {
       .single();
 
     if (fetchError || !ride) return res.status(404).json({ error: "Ride not found" });
-    if (ride.creator_user_id === userIdInt) {
+    if (ride.creator_user_id === userIdInt)
       return res.status(400).json({ error: "Creators cannot leave their own ride" });
-    }
-    if (!ride.passengers || !ride.passengers.includes(userIdInt)) {
+    if (!ride.passengers || !ride.passengers.includes(userIdInt))
       return res.status(400).json({ error: "Not a passenger" });
-    }
 
-    const updatedSeats = ride.available_seats + 1;
     const updatedPassengers = ride.passengers.filter(id => id !== userIdInt);
 
-    const { error: updateError } = await supabase
+    const { data: updated, error: updateError } = await supabase
       .from('rides')
-      .update({ available_seats: updatedSeats, passengers: updatedPassengers })
-      .eq('id', rideId);
+      .update({ available_seats: ride.available_seats + 1, passengers: updatedPassengers })
+      .eq('id', rideId)
+      .select()
+      .single();
 
     if (updateError) throw updateError;
+
+    req.app.get('io').emit('rides-update', { eventType: 'UPDATE', new: updated });
+
     res.json({ success: true });
   } catch (error) {
     console.error(error);
@@ -289,10 +291,9 @@ router.post('/:rideId/leave', async (req, res) => {
 // POST remove a specific rider (creator only)
 router.post('/:rideId/remove-rider', async (req, res) => {
   try {
-    const rideId = parseInt(req.params.rideId);
-    const { userId, riderId } = req.body;
-    const userIdInt = parseInt(userId);
-    const riderIdInt = parseInt(riderId);
+    const rideId     = parseInt(req.params.rideId);
+    const userIdInt  = parseInt(req.body.userId);
+    const riderIdInt = parseInt(req.body.riderId);
 
     const { data: ride, error: fetchError } = await supabase
       .from('rides')
@@ -301,29 +302,29 @@ router.post('/:rideId/remove-rider', async (req, res) => {
       .single();
 
     if (fetchError || !ride) return res.status(404).json({ error: "Ride not found" });
-    if (ride.creator_user_id !== userIdInt) {
+    if (ride.creator_user_id !== userIdInt)
       return res.status(403).json({ error: "Only the creator can remove riders" });
-    }
-    if (!ride.passengers || !ride.passengers.includes(riderIdInt)) {
+    if (!ride.passengers || !ride.passengers.includes(riderIdInt))
       return res.status(400).json({ error: "User is not a passenger" });
-    }
 
-    const updatedPassengers = ride.passengers.filter(id => id !== riderIdInt);
-    const updatedSeats = ride.available_seats + 1;
+    const updatedPassengers        = ride.passengers.filter(id => id !== riderIdInt);
     const updatedRemovedPassengers = [...(ride.removed_passengers || []), riderIdInt];
 
-    const { error: updateError } = await supabase
+    const { data: updated, error: updateError } = await supabase
       .from('rides')
       .update({
-        available_seats: updatedSeats,
+        available_seats: ride.available_seats + 1,
         passengers: updatedPassengers,
         removed_passengers: updatedRemovedPassengers
       })
-      .eq('id', rideId);
+      .eq('id', rideId)
+      .select()
+      .single();
 
     if (updateError) throw updateError;
 
     const io = req.app.get('io');
+    io.emit('rides-update', { eventType: 'UPDATE', new: updated });
     io.emit('rider-removed', { rideId, riderId: riderIdInt });
 
     res.json({ success: true });
@@ -336,9 +337,8 @@ router.post('/:rideId/remove-rider', async (req, res) => {
 // DELETE a ride (creator only)
 router.delete('/:rideId', async (req, res) => {
   try {
-    const rideId = parseInt(req.params.rideId);
-    const { userId } = req.body;
-    const userIdInt = parseInt(userId);
+    const rideId    = parseInt(req.params.rideId);
+    const userIdInt = parseInt(req.body.userId);
 
     const { data: ride, error: fetchError } = await supabase
       .from('rides')
@@ -347,9 +347,8 @@ router.delete('/:rideId', async (req, res) => {
       .single();
 
     if (fetchError || !ride) return res.status(404).json({ error: "Ride not found" });
-    if (ride.creator_user_id !== userIdInt) {
+    if (ride.creator_user_id !== userIdInt)
       return res.status(403).json({ error: "Only the creator can remove this ride" });
-    }
 
     const { error: deleteError } = await supabase
       .from('rides')
@@ -357,6 +356,9 @@ router.delete('/:rideId', async (req, res) => {
       .eq('id', rideId);
 
     if (deleteError) throw deleteError;
+
+    req.app.get('io').emit('rides-update', { eventType: 'DELETE', old: { id: rideId } });
+
     res.json({ success: true });
   } catch (error) {
     console.error(error);
