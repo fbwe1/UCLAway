@@ -1,4 +1,4 @@
-const supabase = require('./supabaseClient');
+const supabase = require('./supabaseclient');
 
 // ─── Expire rides ─────────────────────────────────────────────────────────────
 // Replaces pg_cron. Runs every 60 seconds in Node.js.
