@@ -96,10 +96,24 @@ textarea {
   gap: 12px;
 }
 
+.filter-controls input,
 .filter-controls button,
-.filter-controls select,
-.filter-controls input {
+.filter-controls select {
   width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 16px;
+  outline: none;
+  background: white;
+  color: #111827;
+  font-size: inherit;
+  font-family: inherit;
+}
+
+.filter-controls select {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
 }
 
 @media (max-width: 600px) {
@@ -439,7 +453,6 @@ textarea {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-
   min-height: 100vh;
   gap: 16px;
 }
