@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const supabase = require('../supabaseClient');
+const supabase = require('../supabaseclient');
 
 // GET all rides with optional filters
 router.get('/', async (req, res) => {
