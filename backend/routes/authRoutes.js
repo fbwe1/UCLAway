@@ -1,9 +1,10 @@
 const express = require("express");
 const supabase = require('../supabaseclient.js');
 const router = express.Router()
+const jwt = require('jsonwebtoken')
 
-// sign up route
 router.post("/signup", async (req, res) => {
+
     // credential verification
     const uclaEmailRegex = /^[A-Za-z0-9._%+-]+@(g\.)?ucla\.edu$/i;
     const complexPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])/;
@@ -54,7 +55,7 @@ router.post("/signup", async (req, res) => {
 router.post("/login", async (req,res) =>{
     try{
         const {ucla_email, password} = req.body;
-    const { data, error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
         email: ucla_email,
         password: password,
       })
@@ -62,8 +63,9 @@ router.post("/login", async (req,res) =>{
         return res.json({
             status:false,
             message: "User Not Found"})
-      }else{
-        return res.status(200).json({success: true})
+      } else{
+        const token = generateToken({id: user_id, email: ucla_email});
+        return res.status(200).json({success: true, token})
       }
     } catch(error){
         console.log(error)
