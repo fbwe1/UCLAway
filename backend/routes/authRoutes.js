@@ -64,7 +64,11 @@ router.post("/login", async (req,res) =>{
             status:false,
             message: "User Not Found"})
       } else{
-        const token = generateToken({id: user_id, email: ucla_email});
+        //JWT generated
+        const token = generateToken({
+            id: data.user.id, 
+            email: data.user.ucla_email
+        });
         return res.status(200).json({success: true, token})
       }
     } catch(error){
