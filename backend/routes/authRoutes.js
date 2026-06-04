@@ -44,7 +44,7 @@ router.post("/signup", async (req, res) => {
         else{
             return res.json({
                 status:true,
-                message : "User Was Created Successfully"})
+                message : "User Was Created Successfully. Please go back to the Log In page!"})
         }
     }catch(error){
         console.log(error);

@@ -58,7 +58,7 @@ test("signup creates an account with valid UCLA account information", async () =
     assert.equal(response.status, 200);
     assert.deepEqual(response.body, {
         status: true,
-        message: "User Was Created Successfully"
+        message: "User Was Created Successfully. Please go back to the Log In page!"
     });
     assert.equal(signUpCalls.length, 1);
     assert.equal(signUpCalls[0].email, "newuser@g.ucla.edu");
