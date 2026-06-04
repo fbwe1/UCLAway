@@ -8,11 +8,25 @@ export default function Profile({ currentUserId }) {
 
   const fetchRides = () => {
     setLoading(true)
-
+    // ensure JWT auth included
+    const token = localStorage.getItem("token");
+    if (!token) {
+      console.error("No JWT found. User must log in again");
+      setLoading(false);
+      return;
+    }
+    //shared header for both fetch APIs
+    const authHeader = {
+      Authorization: `Bearer ${token}`
+    }
     // Fetch active rides and history in parallel
     Promise.all([
-      fetch("http://localhost:3001/api/rides").then(res => res.json()),
-      fetch(`http://localhost:3001/api/rides/history?userId=${currentUserId}`).then(res => res.json())
+      fetch("http://localhost:3001/api/rides",{
+        headers: authHeader,
+      }).then(res => res.json()),
+      fetch(`http://localhost:3001/api/rides/history?userId=${currentUserId}`,{
+        headers: authHeader,
+      }).then(res => res.json())
     ])
       .then(([activeData, historyData]) => {
         setRides(Array.isArray(activeData) ? activeData : [])
