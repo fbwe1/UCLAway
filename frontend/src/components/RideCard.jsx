@@ -42,9 +42,17 @@ const RideCard = ({ ride, currentUserId, onUpdate }) => {
     setErrorMsg('');
 
     try {
+      const token = localStorage.getItem("token");
+      if (!token){
+        console.error("No JWT. User must log in again")
+        setErrorMsg("Please Log In Again!");
+        return;
+      }
       const response = await fetch(`http://localhost:3001/api/rides/${ride.id}`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+         },
         body: JSON.stringify({ userId: currentUserId })
       });
       const data = await response.json();
