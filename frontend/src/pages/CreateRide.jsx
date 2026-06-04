@@ -28,9 +28,12 @@ function CreateRide({ currentUserId }) {
     }
 
     try {
+      const token = localStorage.getItem("token");
       const response = await fetch('http://localhost:3001/api/rides', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+         },
         body: JSON.stringify({
           title,
           description,

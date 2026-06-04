@@ -28,6 +28,9 @@ function App() {
     setCurrentUserEmail(uclaEmail);
   }
   function handleLogout() {
+    // clear jwt and return to login pg.
+    localStorage.removeItem("token"); 
+    setToken("");
     setCurrentUserEmail('');
     setCurrentPage('login');
   }

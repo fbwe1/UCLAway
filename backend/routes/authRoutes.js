@@ -2,7 +2,7 @@ const express = require("express");
 const supabase = require('../supabaseclient.js');
 const router = express.Router()
 const jwt = require('jsonwebtoken')
-
+const { generateToken } = require("../services/jwtService") 
 router.post("/signup", async (req, res) => {
 
     // credential verification
@@ -64,10 +64,10 @@ router.post("/login", async (req,res) =>{
             status:false,
             message: "User Not Found"})
       } else{
-        //JWT generated
+        //JWT generated - retrieved from supabase
         const token = generateToken({
             id: data.user.id, 
-            email: data.user.ucla_email
+            email: data.user.email
         });
         return res.status(200).json({success: true, token})
       }

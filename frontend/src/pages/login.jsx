@@ -20,6 +20,7 @@ export default function Login({ onCreateAccount, onForgotPassword, onLogin }) {
             });
             const data = await res.json();
             if (data.success) {
+                localStorage.setItem("token", data.token);
                 setMessage("Login successful!");
                 onLogin(loginData.ucla_email);
             } else {
