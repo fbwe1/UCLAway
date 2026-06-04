@@ -12,6 +12,7 @@ import Login from './pages/login.jsx';
 import Signup from './pages/signup.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
+import SearchUsers from './pages/SearchUsers';
 import './App.css';
 
 const socket = io('http://localhost:3001');
@@ -102,6 +103,7 @@ function App() {
             <Route path="/messages" element={<Messages currentUserId={currentUserId} socket={socket} />} />
             <Route path="/messages/:id" element={<Conversation currentUserId={currentUserId} socket={socket} />} />
             <Route path="/profile" element={<Profile currentUserId={currentUserId} />} />
+            <Route path="/search" element={<SearchUsers currentUserId={currentUserId} />} />
           </Routes>
         </div>
 

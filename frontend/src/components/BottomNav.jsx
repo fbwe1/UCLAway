@@ -45,6 +45,21 @@ function BottomNav() {
         Create
       </NavLink>
       <NavLink
+        to="/search"
+        style={({ isActive }) => ({
+          textDecoration: 'none',
+          color: '#000',
+          fontWeight: '600',
+          padding: '10px 28px',
+          borderRadius: '50px',
+          backgroundColor: isActive ? '#fff' : 'transparent',
+          fontSize: '15px',
+          whiteSpace: 'nowrap',
+        })}
+      >
+        Search
+      </NavLink>
+      <NavLink
         to="/profile"
         style={({ isActive }) => ({
           textDecoration: 'none',
