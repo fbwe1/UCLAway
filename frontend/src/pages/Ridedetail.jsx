@@ -37,7 +37,19 @@ function RideDetail({ currentUserId, socket }) {
 
   const fetchRide = async () => {
     try {
-      const res = await fetch(`http://localhost:3001/api/rides/${id}`);
+      // ensure JWT auth included
+      const token = localStorage.getItem("token")
+      if (!token){
+        console.error("No JWT found. User must log in again");
+        setErrorMsg("Please Log In Again!")
+        setLoading(false);
+        return;
+      }
+      const res = await fetch(`http://localhost:3001/api/rides/${id}`,{
+        headers: {
+          Authorization: `Bearer ${token}`,
+        }
+    });
       const data = await res.json();
       if (!res.ok) {
         setErrorMsg(data.error || 'Ride not found');
@@ -103,11 +115,19 @@ function RideDetail({ currentUserId, socket }) {
     setErrorMsg('');
     const hasJoined = ride.passengers && ride.passengers.includes(currentUserId);
     const action = hasJoined ? 'leave' : 'join';
-
     try {
+      const token = localStorage.getItem("token");
+      if (!token){
+        console.error("No JWT found. User must log in again");
+        setErrorMsg("Please Log In Again!")
+        setLoading(false);
+        return;
+      }
       const res = await fetch(`http://localhost:3001/api/rides/${ride.id}/${action}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+         },
         body: JSON.stringify({ userId: currentUserId })
       });
       const data = await res.json();
@@ -129,9 +149,19 @@ function RideDetail({ currentUserId, socket }) {
     setErrorMsg('');
 
     try {
+      // ensure JWT auth included
+      const token = localStorage.getItem("token");
+      if (!token){
+        console.error("No JWT found. User must log in again");
+        setErrorMsg("Please Log In Again!")
+        setLoading(false);
+        return;
+      }
       const res = await fetch(`http://localhost:3001/api/rides/${ride.id}/remove-rider`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+         },
         body: JSON.stringify({ userId: currentUserId, riderId })
       });
       const data = await res.json();
@@ -166,9 +196,18 @@ function RideDetail({ currentUserId, socket }) {
     }
 
     try {
+      const token = localStorage.getItem("token")
+      if (!token){
+        console.error("No JWT found. User must log in again");
+        setErrorMsg("Please Log In Again!")
+        setLoading(false);
+        return;
+      }
       const res = await fetch(`http://localhost:3001/api/rides/${ride.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+         },
         body: JSON.stringify({
           userId: currentUserId,
           title: editTitle,
@@ -198,9 +237,18 @@ function RideDetail({ currentUserId, socket }) {
   const handleMessageUser = async (targetUserId) => {
     // Start or find a conversation then navigate to it
     try {
+      const token = localStorage.getItem("token");
+      if (!token){
+        console.error("No JWT found. User must log in again");
+        setErrorMsg("Please Log In Again!")
+        setLoading(false);
+        return;
+      }
       const res = await fetch('http://localhost:3001/api/messages/conversations', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+         },
         body: JSON.stringify({ senderId: currentUserId, receiverId: targetUserId })
       });
       const data = await res.json();

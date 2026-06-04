@@ -28,7 +28,7 @@ function CreateRide({ currentUserId }) {
     }
 
     try {
-      // ensure JWT auth in path
+      // ensure JWT auth included
       const token = localStorage.getItem("token");
       if (!token){
         console.error("No JWT found. User must log in again");
