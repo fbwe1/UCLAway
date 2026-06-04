@@ -8,7 +8,7 @@ import Conversation from './pages/Conversation';
 import Messages from './pages/Messages';
 import Profile from './Profile';
 import BottomNav from './components/BottomNav';
-import Login from './pages/login.jsx';
+import Login from './pages/Login.jsx';
 import Signup from './pages/signup.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
@@ -23,7 +23,7 @@ function App() {
   const startingPage = window.location.pathname === '/reset-password' ? 'reset-password' : 'login';
   const [currentPage, setCurrentPage] = useState(startingPage);
   const [currentUserEmail, setCurrentUserEmail] = useState('');
-
+  const [token, setToken] = useState(localStorage.getItem("token"));
   function handleLogin(uclaEmail) {
     setCurrentUserEmail(uclaEmail);
   }
