@@ -35,7 +35,7 @@ function RideFeed({ currentUserId, socket }) {
 
   const fetchRides = (filters = activeFiltersRef.current) => {
     setLoading(true);
-    // ensure JWT in transaction
+    // ensure JWT auth in path
     const token = localStorage.getItem("token");
     if (!token){
       console.error("No JWT found. User must log in again");

@@ -28,7 +28,14 @@ function CreateRide({ currentUserId }) {
     }
 
     try {
+      // ensure JWT auth in path
       const token = localStorage.getItem("token");
+      if (!token){
+        console.error("No JWT found. User must log in again");
+        setErrorMsg("Please Log In Again!")
+        setLoading(false);
+        return;
+      }
       const response = await fetch('http://localhost:3001/api/rides', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json',
