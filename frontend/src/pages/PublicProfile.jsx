@@ -5,20 +5,23 @@ function PublicProfile({ currentUserId }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
+  const [activities, setActivities] = useState([]);
   const [isFollowing, setIsFollowing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [activityLoading, setActivityLoading] = useState(true);
   const [followLoading, setFollowLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
+  const [errorMsg, setErrorMsg] = useState("");
 
   const getAuthHeaders = () => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
   useEffect(() => {
     const fetchProfile = async () => {
       setLoading(true);
-      setErrorMsg('');
+      setActivityLoading(true);
+      setErrorMsg("");
 
       try {
         const profileRes = await fetch(`http://localhost:3001/api/profile/${id}`, {
@@ -28,11 +31,21 @@ function PublicProfile({ currentUserId }) {
         const profileData = await profileRes.json();
 
         if (!profileRes.ok) {
-          setErrorMsg(profileData.error || 'User not found');
+          setErrorMsg(profileData.error || "User not found");
           return;
         }
 
         setProfile(profileData);
+
+        const activityRes = await fetch(`http://localhost:3001/api/profile/${id}/activity`, {
+          headers: getAuthHeaders(),
+        });
+
+        const activityData = await activityRes.json();
+
+        if (activityRes.ok) {
+          setActivities(Array.isArray(activityData) ? activityData : []);
+        }
 
         if (Number(id) !== Number(currentUserId)) {
           const followRes = await fetch(
@@ -44,9 +57,10 @@ function PublicProfile({ currentUserId }) {
           setIsFollowing(Boolean(followData.isFollowing));
         }
       } catch {
-        setErrorMsg('Failed to connect to the server.');
+        setErrorMsg("Failed to connect to the server.");
       } finally {
         setLoading(false);
+        setActivityLoading(false);
       }
     };
 
@@ -55,13 +69,13 @@ function PublicProfile({ currentUserId }) {
 
   const toggleFollow = async () => {
     setFollowLoading(true);
-    setErrorMsg('');
+    setErrorMsg("");
 
     try {
       const res = await fetch(`http://localhost:3001/api/profile/${id}/follow`, {
-        method: isFollowing ? 'DELETE' : 'POST',
+        method: isFollowing ? "DELETE" : "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           ...getAuthHeaders(),
         },
         body: JSON.stringify({
@@ -72,7 +86,7 @@ function PublicProfile({ currentUserId }) {
       const data = await res.json();
 
       if (!res.ok) {
-        setErrorMsg(data.error || 'Failed to update follow status');
+        setErrorMsg(data.error || "Failed to update follow status");
         return;
       }
 
@@ -83,10 +97,52 @@ function PublicProfile({ currentUserId }) {
         followersCount: (prev.followersCount || 0) + (isFollowing ? -1 : 1),
       }));
     } catch {
-      setErrorMsg('Failed to update follow status.');
+      setErrorMsg("Failed to update follow status.");
     } finally {
       setFollowLoading(false);
     }
+  };
+
+  const startConversation = async () => {
+    setErrorMsg("");
+
+    try {
+      const res = await fetch("http://localhost:3001/api/messages/conversations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({
+          senderId: currentUserId,
+          receiverId: Number(id),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setErrorMsg(data.error || "Failed to start conversation");
+        return;
+      }
+
+      navigate(`/messages/${data.conversation.id}`);
+    } catch {
+      setErrorMsg("Failed to connect to the backend server.");
+    }
+  };
+
+  const formatDateTime = (value) => {
+    if (!value) return "";
+
+    return new Date(value).toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+      timeZone: "America/Los_Angeles",
+    });
   };
 
   if (loading) {
@@ -97,7 +153,7 @@ function PublicProfile({ currentUserId }) {
     );
   }
 
-  if (errorMsg) {
+  if (errorMsg && !profile) {
     return (
       <main className="page">
         <p className="error-message">{errorMsg}</p>
@@ -109,24 +165,12 @@ function PublicProfile({ currentUserId }) {
   }
 
   const isOwnProfile = Number(id) === Number(currentUserId);
-  const displayName = profile.first_name || profile.full_name || profile.username;
-  const initial = displayName?.charAt(0).toUpperCase() || '?';
+  const displayName = profile.full_name || profile.username;
+  const initial = displayName?.charAt(0).toUpperCase() || "?";
 
   return (
     <main className="page">
-      <button
-        type="button"
-        onClick={() => navigate(-1)}
-        style={{
-          background: 'none',
-          border: 'none',
-          color: '#4CAF50',
-          fontSize: '15px',
-          cursor: 'pointer',
-          fontWeight: 'bold',
-          padding: '0 0 16px 0',
-        }}
-      >
+      <button type="button" className="back-link" onClick={() => navigate(-1)}>
         ← Back
       </button>
 
@@ -149,19 +193,68 @@ function PublicProfile({ currentUserId }) {
           <h2>{profile.followingCount ?? 0}</h2>
           <p>Following</p>
         </div>
+
+        <div className="stat-card">
+          <h2>{activities.length}</h2>
+          <p>Activities</p>
+        </div>
       </section>
 
       {!isOwnProfile && (
-        <button
-          type="button"
-          onClick={toggleFollow}
-          disabled={followLoading}
-          className={isFollowing ? 'secondary-button' : 'primary-button'}
-          style={{ width: '100%', marginTop: '8px' }}
-        >
-          {followLoading ? '...' : isFollowing ? 'Unfollow' : 'Follow'}
-        </button>
+        <div className="profile-action-row">
+          <button
+            type="button"
+            onClick={toggleFollow}
+            disabled={followLoading}
+            className={isFollowing ? "secondary-button" : "primary-button"}
+          >
+            {followLoading ? "..." : isFollowing ? "Unfollow" : "Follow"}
+          </button>
+
+          <button
+            type="button"
+            onClick={startConversation}
+            className="secondary-button"
+          >
+            Message
+          </button>
+        </div>
       )}
+
+      {errorMsg && <p className="error-message">{errorMsg}</p>}
+
+      <h2 className="section-title public-profile-section-title">
+        Recent Activity
+      </h2>
+
+      <section className="activity-list">
+        {activityLoading ? (
+          <p className="empty-message">Loading recent activity...</p>
+        ) : activities.length > 0 ? (
+          activities.map((activity) => (
+            <article className="activity-card" key={`${activity.activityType}-${activity.id}`}>
+              <div className="activity-icon">
+                {activity.activityType === "created" ? "＋" : "✓"}
+              </div>
+
+              <div className="activity-info">
+                <h3>{activity.activityText}</h3>
+
+                <p className="muted">
+                  {activity.pickup_location} → {activity.destination}
+                </p>
+
+                <p className="activity-meta">
+                  {activity.is_round_trip ? "Round Trip" : "One Way"}
+                  {activity.departure_time && ` · ${formatDateTime(activity.departure_time)}`}
+                </p>
+              </div>
+            </article>
+          ))
+        ) : (
+          <p className="empty-message">No recent activity yet.</p>
+        )}
+      </section>
     </main>
   );
 }

@@ -172,10 +172,119 @@ async function getFollowStatus(req, res) {
     }
 }
 
+async function getRecentActivity(req, res) {
+    try {
+        const userId = Number(req.params.id);
+
+        if (!Number.isInteger(userId)) {
+            return res.status(400).json({ error: "Invalid user id" });
+        }
+
+        const rideColumns = `
+            id,
+            title,
+            pickup_location,
+            destination,
+            creator_user_id,
+            passengers,
+            departure_time,
+            created_at,
+            is_round_trip
+        `;
+
+        const [
+            { data: createdRides, error: createdError },
+            { data: joinedRides, error: joinedError },
+            { data: createdHistory, error: createdHistoryError },
+            { data: joinedHistory, error: joinedHistoryError },
+        ] = await Promise.all([
+            supabase
+                .from("rides")
+                .select(rideColumns)
+                .eq("creator_user_id", userId)
+                .order("created_at", { ascending: false })
+                .limit(6),
+
+            supabase
+                .from("rides")
+                .select(rideColumns)
+                .contains("passengers", [userId])
+                .order("created_at", { ascending: false })
+                .limit(6),
+
+            supabase
+                .from("ride_history")
+                .select(rideColumns)
+                .eq("creator_user_id", userId)
+                .order("departure_time", { ascending: false })
+                .limit(6),
+
+            supabase
+                .from("ride_history")
+                .select(rideColumns)
+                .contains("passengers", [userId])
+                .order("departure_time", { ascending: false })
+                .limit(6),
+        ]);
+
+        if (createdError) throw createdError;
+        if (joinedError) throw joinedError;
+        if (createdHistoryError) throw createdHistoryError;
+        if (joinedHistoryError) throw joinedHistoryError;
+
+        const activities = [
+            ...(createdRides || []).map((ride) => ({
+                ...ride,
+                activityType: "created",
+                activityText: `Created a ride to ${ride.destination}`,
+            })),
+
+            ...(joinedRides || []).map((ride) => ({
+                ...ride,
+                activityType: "joined",
+                activityText: `Joined a ride to ${ride.destination}`,
+            })),
+
+            ...(createdHistory || []).map((ride) => ({
+                ...ride,
+                activityType: "created",
+                activityText: `Created a ride to ${ride.destination}`,
+            })),
+
+            ...(joinedHistory || []).map((ride) => ({
+                ...ride,
+                activityType: "joined",
+                activityText: `Joined a ride to ${ride.destination}`,
+            })),
+        ];
+
+        const uniqueActivities = Array.from(
+            new Map(
+                activities.map((activity) => [
+                    `${activity.activityType}-${activity.id}`,
+                    activity,
+                ])
+            ).values()
+        );
+
+        uniqueActivities.sort((a, b) => {
+            const dateA = new Date(a.created_at || a.departure_time);
+            const dateB = new Date(b.created_at || b.departure_time);
+            return dateB - dateA;
+        });
+
+        res.json(uniqueActivities.slice(0, 6));
+    } catch (err) {
+        console.error("Failed to fetch recent activity:", err);
+        res.status(500).json({ error: "Internal server error" });
+    }
+}
+
 module.exports = {
     getProfileById,
     searchUsers,
     followUser,
     unfollowUser,
     getFollowStatus,
+    getRecentActivity,
 };

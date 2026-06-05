@@ -363,6 +363,10 @@ textarea {
   border: 1px solid #e5e7eb;
 }
 
+.created-rides-heading {
+  margin-top: 14px;
+}
+
 /* Create ride form */
 .form-card {
   padding: 20px;
@@ -1061,5 +1065,74 @@ textarea {
 @media (max-width: 520px) {
   .edit-form-actions {
     flex-direction: column;
+  }
+}
+
+.public-profile-section-title {
+  margin-top: 24px;
+}
+
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.activity-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 22px;
+  padding: 16px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.activity-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: #eff6ff;
+  color: #2563eb;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 20px;
+  flex: 0 0 auto;
+}
+
+.activity-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.activity-info h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #111827;
+}
+
+.activity-meta {
+  margin: 6px 0 0;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.profile-action-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.profile-action-row .primary-button,
+.profile-action-row .secondary-button {
+  margin-top: 0;
+}
+
+@media (max-width: 520px) {
+  .profile-action-row {
+    grid-template-columns: 1fr;
   }
 }

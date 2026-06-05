@@ -105,8 +105,7 @@ export default function Profile({ currentUserId, onLogout }) {
           <p className="empty-message">You have not joined any rides yet.</p>
         )}
       </section>
-
-      <h2 className="section-title">My Created Rides</h2>
+      <h2 className="section-title created-rides-heading"> My Created Rides </h2>
       <section className="post-list">
         {loading ? (
           <p className="empty-message">Loading rides...</p>
