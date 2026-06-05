@@ -164,7 +164,6 @@ function RideDetail({ currentUserId, socket }) {
   };
 
   const handleRemoveRider = async (riderId) => {
-    if (!window.confirm(`Remove ${usernames[riderId] || `User ${riderId}`}? They will not be able to rejoin.`)) return;
     setRemovingRider(riderId);
     setErrorMsg('');
 
