@@ -16,6 +16,18 @@ function UserSearch({ currentUserId }) {
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
+  const handleUnauthenticated = (res) => {
+    if (res.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('userId');
+      localStorage.removeItem('username');
+      window.location.reload();
+      return true;
+    }
+
+    return false;
+  };
+
   useEffect(() => {
     const trimmedSearch = search.trim();
 
@@ -41,6 +53,10 @@ function UserSearch({ currentUserId }) {
           headers: getAuthHeaders(),
         });
 
+        if (handleUnauthenticated(res)) {
+          return;
+        }
+
         const data = await res.json();
 
         if (!res.ok) {
@@ -65,6 +81,10 @@ function UserSearch({ currentUserId }) {
                 `http://localhost:3001/api/profile/${user.profile_id}/follow-status?userId=${currentUserId}`,
                 { headers: getAuthHeaders() }
               );
+
+              if (handleUnauthenticated(statusRes)) {
+                return;
+              }
 
               const statusData = await statusRes.json();
               statuses[user.profile_id] = Boolean(statusData.isFollowing);
@@ -109,6 +129,10 @@ function UserSearch({ currentUserId }) {
         }),
       });
 
+      if (handleUnauthenticated(res)) {
+        return;
+      }
+
       const data = await res.json();
 
       if (!res.ok) {
@@ -131,6 +155,8 @@ function UserSearch({ currentUserId }) {
   };
 
   const startConversation = async (receiverId) => {
+    setErrorMsg('');
+
     try {
       const res = await fetch('http://localhost:3001/api/messages/conversations', {
         method: 'POST',
@@ -143,6 +169,10 @@ function UserSearch({ currentUserId }) {
           receiverId,
         }),
       });
+
+      if (handleUnauthenticated(res)) {
+        return;
+      }
 
       const data = await res.json();
 
@@ -158,7 +188,7 @@ function UserSearch({ currentUserId }) {
   };
 
   const getDisplayName = (user) => {
-    return user.full_name || user.username || `User ${user.profile_id}`;
+    return user.full_name || user.first_name || user.username || `User ${user.profile_id}`;
   };
 
   const getInitial = (user) => {

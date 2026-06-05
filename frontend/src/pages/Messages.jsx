@@ -5,7 +5,16 @@ function Messages({ currentUserId, socket }) {
   const navigate = useNavigate();
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
-
+  
+  //expired token = redirect to login
+  const handleUnauthenticated = (res) => {
+    //unauthorized case
+    if (res.status === 401) {
+      localStorage.removeItem("token");
+      window.location.reload();
+      return true;}
+    return false;
+  };
   const fetchConversations = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -15,6 +24,8 @@ function Messages({ currentUserId, socket }) {
         `http://localhost:3001/api/messages/conversations?userId=${currentUserId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      if (handleUnauthenticated(res)){
+        return;}
       const data = await res.json();
       if (res.ok) setConversations(data);
     } catch {

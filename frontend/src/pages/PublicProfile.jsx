@@ -4,6 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 function PublicProfile({ currentUserId }) {
   const { id } = useParams();
   const navigate = useNavigate();
+
   const [profile, setProfile] = useState(null);
   const [activities, setActivities] = useState([]);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -17,6 +18,18 @@ function PublicProfile({ currentUserId }) {
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
+  const handleUnauthenticated = (res) => {
+    if (res.status === 401) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("userId");
+      localStorage.removeItem("username");
+      window.location.reload();
+      return true;
+    }
+
+    return false;
+  };
+
   useEffect(() => {
     const fetchProfile = async () => {
       setLoading(true);
@@ -27,6 +40,10 @@ function PublicProfile({ currentUserId }) {
         const profileRes = await fetch(`http://localhost:3001/api/profile/${id}`, {
           headers: getAuthHeaders(),
         });
+
+        if (handleUnauthenticated(profileRes)) {
+          return;
+        }
 
         const profileData = await profileRes.json();
 
@@ -41,6 +58,10 @@ function PublicProfile({ currentUserId }) {
           headers: getAuthHeaders(),
         });
 
+        if (handleUnauthenticated(activityRes)) {
+          return;
+        }
+
         const activityData = await activityRes.json();
 
         if (activityRes.ok) {
@@ -53,8 +74,15 @@ function PublicProfile({ currentUserId }) {
             { headers: getAuthHeaders() }
           );
 
+          if (handleUnauthenticated(followRes)) {
+            return;
+          }
+
           const followData = await followRes.json();
-          setIsFollowing(Boolean(followData.isFollowing));
+
+          if (followRes.ok) {
+            setIsFollowing(Boolean(followData.isFollowing));
+          }
         }
       } catch {
         setErrorMsg("Failed to connect to the server.");
@@ -82,6 +110,10 @@ function PublicProfile({ currentUserId }) {
           userId: currentUserId,
         }),
       });
+
+      if (handleUnauthenticated(res)) {
+        return;
+      }
 
       const data = await res.json();
 
@@ -118,6 +150,10 @@ function PublicProfile({ currentUserId }) {
           receiverId: Number(id),
         }),
       });
+
+      if (handleUnauthenticated(res)) {
+        return;
+      }
 
       const data = await res.json();
 
@@ -165,7 +201,7 @@ function PublicProfile({ currentUserId }) {
   }
 
   const isOwnProfile = Number(id) === Number(currentUserId);
-  const displayName = profile.full_name || profile.username;
+  const displayName = profile.full_name || profile.first_name || profile.username;
   const initial = displayName?.charAt(0).toUpperCase() || "?";
 
   return (

@@ -17,6 +17,14 @@ function Conversation({ currentUserId, socket }) {
   const token = localStorage.getItem("token");
   const authHeader = { Authorization: `Bearer ${token}` };
 
+  const handleUnauthenticated = (res) => {
+    //unauthorized case
+    if (res.status === 401) {
+      localStorage.removeItem("token");
+      window.location.reload();
+      return true;}
+    return false;
+  };
   const fetchMessages = async () => {
     try {
       if (!token) { setErrorMsg("Please log in again."); setLoading(false); return; }
@@ -24,6 +32,9 @@ function Conversation({ currentUserId, socket }) {
         `http://localhost:3001/api/messages/conversations/${conversationId}?userId=${currentUserId}`,
         { headers: authHeader }
       );
+      if (handleUnauthenticated(res)){
+        return;
+      }
       const data = await res.json();
       if (!res.ok) {
         setErrorMsg(data.error || 'Failed to load conversation');
@@ -41,11 +52,13 @@ function Conversation({ currentUserId, socket }) {
 
   const markAsRead = async () => {
     try {
-      await fetch(`http://localhost:3001/api/messages/conversations/${conversationId}/read`, {
+      const res = await fetch(`http://localhost:3001/api/messages/conversations/${conversationId}/read`, {
         method: 'PUT',
         headers: { ...authHeader, 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: currentUserId })
       });
+      if (handleUnauthenticated(res)){
+        return;}
     } catch {}
   };
 
@@ -73,6 +86,8 @@ function Conversation({ currentUserId, socket }) {
         headers: { ...authHeader, 'Content-Type': 'application/json' },
         body: JSON.stringify({ senderId: currentUserId, content: newMessage.trim() })
       });
+      if (handleUnauthenticated(res)){
+        return;}
       const data = await res.json();
       if (!res.ok) {
         setErrorMsg(data.error || 'Failed to send message');

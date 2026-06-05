@@ -34,6 +34,15 @@ function RideDetail({ currentUserId, socket }) {
     const offsetMs = date.getTimezoneOffset() * 60000;
     return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
   };
+  //expired token = redirect to login
+  const handleUnauthenticated = (res) => {
+    //unauthorized case
+    if (res.status === 401) {
+      localStorage.removeItem("token");
+      window.location.reload();
+      return true;}
+    return false;
+  };  
 
   const now = toDatetimeLocal(new Date());
 
@@ -52,6 +61,9 @@ function RideDetail({ currentUserId, socket }) {
           Authorization: `Bearer ${token}`,
         }
     });
+      if (handleUnauthenticated(res)){
+        return;
+      }
       const data = await res.json();
       if (!res.ok) {
         setErrorMsg(data.error || 'Ride not found');
@@ -91,7 +103,11 @@ function RideDetail({ currentUserId, socket }) {
       ids.map(uid =>
         fetch(`http://localhost:3001/api/profile/${uid}`, {
           headers: { Authorization: `Bearer ${token}` }
-        }).then(r => r.json())
+        }).then(r => {
+          if (handleUnauthenticated(r)){
+            return null; 
+          }
+          return r.json();})
       )
     ).then(profiles => {
       const map = {};
@@ -150,6 +166,9 @@ function RideDetail({ currentUserId, socket }) {
          },
         body: JSON.stringify({ userId: currentUserId })
       });
+      if (handleUnauthenticated(res)){
+        return;
+      }
       const data = await res.json();
       if (!res.ok) {
         setErrorMsg(data.error || 'Something went wrong');
@@ -183,6 +202,9 @@ function RideDetail({ currentUserId, socket }) {
          },
         body: JSON.stringify({ userId: currentUserId, riderId })
       });
+      if (handleUnauthenticated(res)){
+        return;
+      }
       const data = await res.json();
       if (!res.ok) {
         setErrorMsg(data.error || 'Failed to remove rider');
@@ -239,6 +261,9 @@ function RideDetail({ currentUserId, socket }) {
           return_time: editIsRoundTrip ? new Date(editReturnTime).toISOString() : null
         })
       });
+      if (handleUnauthenticated(res)){
+        return;
+      }
       const data = await res.json();
       if (!res.ok) {
         setErrorMsg(data.error || 'Failed to update ride');
@@ -270,6 +295,9 @@ function RideDetail({ currentUserId, socket }) {
          },
         body: JSON.stringify({ senderId: currentUserId, receiverId: targetUserId })
       });
+      if (handleUnauthenticated(res)){
+        return;
+      }
       const data = await res.json();
       if (res.ok) {
         navigate(`/messages/${data.conversation.id}`);
