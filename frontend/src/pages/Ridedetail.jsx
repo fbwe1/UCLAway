@@ -23,8 +23,6 @@ function RideDetail({ currentUserId, socket }) {
   const [editIsRoundTrip, setEditIsRoundTrip] = useState(false);
   const [editReturnTime, setEditReturnTime] = useState('');
 
- // TODO: Add to database later
-  const [note, setNote] = useState('');
 
 
   
@@ -574,26 +572,6 @@ function RideDetail({ currentUserId, socket }) {
       )}
 
       <hr style={{ margin: '16px 0', borderColor: '#eee' }} />
-
-      {/* ── Temporary notes section ── */}
-      {/* TODO: replace with real comments stored in DB once comments are added to rides table */}
-      {/* Currently resets every page load — only visible to you, nothing is saved */}
-      <h3 style={{ margin: '0 0 8px 0' }}>My Notes <span style={{ color: '#aaa', fontSize: '12px', fontWeight: 'normal' }}>(only visible to you, resets on refresh)</span></h3>
-      <textarea
-        value={note}
-        onChange={e => setNote(e.target.value)}
-        placeholder="Add a private note about this ride..."
-        rows={4}
-        style={{
-          width: '100%',
-          padding: '10px',
-          borderRadius: '6px',
-          border: '1px solid #ccc',
-          fontSize: '14px',
-          resize: 'vertical',
-          boxSizing: 'border-box'
-        }}
-      />
     </div>
   );
 }
