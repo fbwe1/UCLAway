@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
-export default function PublicProfile({ currentUserId }) {
+function PublicProfile({ currentUserId }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
@@ -10,45 +10,77 @@ export default function PublicProfile({ currentUserId }) {
   const [followLoading, setFollowLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const token = localStorage.getItem("token");
-  const authHeader = { Authorization: `Bearer ${token}` };
-
-  const fetchProfile = async () => {
-    try {
-      const [profileRes, followRes] = await Promise.all([
-        fetch(`http://localhost:3001/api/profile/${id}`, { headers: authHeader }),
-        fetch(`http://localhost:3001/api/profile/${id}/follow-status?userId=${currentUserId}`, { headers: authHeader })
-      ]);
-      const profileData = await profileRes.json();
-      const followData = await followRes.json();
-
-      if (!profileRes.ok) {
-        setErrorMsg(profileData.error || 'User not found');
-      } else {
-        setProfile(profileData);
-        setIsFollowing(followData.isFollowing);
-      }
-    } catch {
-      setErrorMsg('Failed to connect to the server.');
-    } finally {
-      setLoading(false);
-    }
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
-  useEffect(() => { fetchProfile(); }, [id]);
+  useEffect(() => {
+    const fetchProfile = async () => {
+      setLoading(true);
+      setErrorMsg('');
+
+      try {
+        const profileRes = await fetch(`http://localhost:3001/api/profile/${id}`, {
+          headers: getAuthHeaders(),
+        });
+
+        const profileData = await profileRes.json();
+
+        if (!profileRes.ok) {
+          setErrorMsg(profileData.error || 'User not found');
+          return;
+        }
+
+        setProfile(profileData);
+
+        if (Number(id) !== Number(currentUserId)) {
+          const followRes = await fetch(
+            `http://localhost:3001/api/profile/${id}/follow-status?userId=${currentUserId}`,
+            { headers: getAuthHeaders() }
+          );
+
+          const followData = await followRes.json();
+          setIsFollowing(Boolean(followData.isFollowing));
+        }
+      } catch {
+        setErrorMsg('Failed to connect to the server.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [id, currentUserId]);
 
   const toggleFollow = async () => {
     setFollowLoading(true);
+    setErrorMsg('');
+
     try {
-      await fetch(`http://localhost:3001/api/profile/${id}/follow`, {
+      const res = await fetch(`http://localhost:3001/api/profile/${id}/follow`, {
         method: isFollowing ? 'DELETE' : 'POST',
-        headers: { ...authHeader, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: currentUserId })
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({
+          userId: currentUserId,
+        }),
       });
-      setIsFollowing(prev => !prev);
-      setProfile(prev => ({
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setErrorMsg(data.error || 'Failed to update follow status');
+        return;
+      }
+
+      setIsFollowing((prev) => !prev);
+
+      setProfile((prev) => ({
         ...prev,
-        followersCount: prev.followersCount + (isFollowing ? -1 : 1)
+        followersCount: (prev.followersCount || 0) + (isFollowing ? -1 : 1),
       }));
     } catch {
       setErrorMsg('Failed to update follow status.');
@@ -57,30 +89,53 @@ export default function PublicProfile({ currentUserId }) {
     }
   };
 
-  if (loading) return <div style={{ padding: '20px' }}>Loading...</div>;
-  if (errorMsg) return (
-    <div style={{ padding: '20px' }}>
-      <p style={{ color: 'red' }}>{errorMsg}</p>
-      <button onClick={() => navigate(-1)}>← Go Back</button>
-    </div>
-  );
+  if (loading) {
+    return (
+      <main className="page">
+        <p className="empty-message">Loading profile...</p>
+      </main>
+    );
+  }
 
-  const isOwnProfile = parseInt(id) === currentUserId;
+  if (errorMsg) {
+    return (
+      <main className="page">
+        <p className="error-message">{errorMsg}</p>
+        <button type="button" className="secondary-button" onClick={() => navigate(-1)}>
+          Back
+        </button>
+      </main>
+    );
+  }
+
+  const isOwnProfile = Number(id) === Number(currentUserId);
+  const displayName = profile.first_name || profile.full_name || profile.username;
+  const initial = displayName?.charAt(0).toUpperCase() || '?';
 
   return (
     <main className="page">
       <button
+        type="button"
         onClick={() => navigate(-1)}
-        style={{ background: 'none', border: 'none', color: '#4CAF50', fontSize: '15px', cursor: 'pointer', fontWeight: 'bold', padding: '0 0 16px 0' }}
+        style={{
+          background: 'none',
+          border: 'none',
+          color: '#4CAF50',
+          fontSize: '15px',
+          cursor: 'pointer',
+          fontWeight: 'bold',
+          padding: '0 0 16px 0',
+        }}
       >
         ← Back
       </button>
 
       <section className="profile-card">
-        <div className="avatar">{profile.username[0]?.toUpperCase()}</div>
+        <div className="avatar">{initial}</div>
+
         <div>
           <h1>{profile.username}</h1>
-          <p className="muted">{profile.full_name}</p>
+          <p className="muted">{displayName}</p>
         </div>
       </section>
 
@@ -89,6 +144,7 @@ export default function PublicProfile({ currentUserId }) {
           <h2>{profile.followersCount ?? 0}</h2>
           <p>Followers</p>
         </div>
+
         <div className="stat-card">
           <h2>{profile.followingCount ?? 0}</h2>
           <p>Following</p>
@@ -97,6 +153,7 @@ export default function PublicProfile({ currentUserId }) {
 
       {!isOwnProfile && (
         <button
+          type="button"
           onClick={toggleFollow}
           disabled={followLoading}
           className={isFollowing ? 'secondary-button' : 'primary-button'}
@@ -108,3 +165,5 @@ export default function PublicProfile({ currentUserId }) {
     </main>
   );
 }
+
+export default PublicProfile;

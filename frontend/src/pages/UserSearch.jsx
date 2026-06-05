@@ -1,115 +1,244 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-export default function UserSearch({ currentUserId }) {
-    const [search, setSearch] = useState("");
-    const [results, setResults] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [followStatus, setFollowStatus] = useState({});
-    const navigate = useNavigate();
+function UserSearch({ currentUserId }) {
+  const navigate = useNavigate();
 
-    const token = localStorage.getItem("token");
-    const authHeader = { Authorization: `Bearer ${token}` };
+  const [search, setSearch] = useState('');
+  const [users, setUsers] = useState([]);
+  const [followStatus, setFollowStatus] = useState({});
+  const [followLoading, setFollowLoading] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
-    async function handleSearch(e) {
-        e.preventDefault();
-        if (!search.trim()) return;
-        setLoading(true);
-        try {
-            const res = await fetch(
-                `http://localhost:3001/api/profile?search=${encodeURIComponent(search)}`,
-                { headers: authHeader }
-            );
-            const data = await res.json();
-            const users = Array.isArray(data) ? data.filter(u => u.profile_id !== currentUserId) : [];
-            setResults(users);
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
 
-            // fetch follow status for all results
-            const statuses = {};
-            await Promise.all(users.map(async (user) => {
-                const r = await fetch(
-                    `http://localhost:3001/api/profile/${user.profile_id}/follow-status?userId=${currentUserId}`,
-                    { headers: authHeader }
-                );
-                const d = await r.json();
-                statuses[user.profile_id] = d.isFollowing;
-            }));
-            setFollowStatus(statuses);
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
+  useEffect(() => {
+    const trimmedSearch = search.trim();
+
+    if (!trimmedSearch) {
+      setUsers([]);
+      setFollowStatus({});
+      setLoading(false);
+      setErrorMsg('');
+      return;
     }
 
-    async function toggleFollow(profileId) {
-        const isFollowing = followStatus[profileId];
-        try {
-            await fetch(`http://localhost:3001/api/profile/${profileId}/follow`, {
-                method: isFollowing ? "DELETE" : "POST",
-                headers: { ...authHeader, "Content-Type": "application/json" },
-                body: JSON.stringify({ userId: currentUserId })
-            });
-            setFollowStatus(prev => ({ ...prev, [profileId]: !isFollowing }));
-        } catch (err) {
-            console.error(err);
+    const timer = setTimeout(async () => {
+      setLoading(true);
+      setErrorMsg('');
+
+      try {
+        const params = new URLSearchParams({
+          search: trimmedSearch,
+          currentUserId: String(currentUserId),
+        });
+
+        const res = await fetch(`http://localhost:3001/api/profile?${params.toString()}`, {
+          headers: getAuthHeaders(),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          setErrorMsg(data.error || 'Failed to search users');
+          setUsers([]);
+          setFollowStatus({});
+          return;
         }
+
+        const filteredUsers = Array.isArray(data)
+          ? data.filter((user) => Number(user.profile_id) !== Number(currentUserId))
+          : [];
+
+        setUsers(filteredUsers);
+
+        const statuses = {};
+
+        await Promise.all(
+          filteredUsers.map(async (user) => {
+            try {
+              const statusRes = await fetch(
+                `http://localhost:3001/api/profile/${user.profile_id}/follow-status?userId=${currentUserId}`,
+                { headers: getAuthHeaders() }
+              );
+
+              const statusData = await statusRes.json();
+              statuses[user.profile_id] = Boolean(statusData.isFollowing);
+            } catch {
+              statuses[user.profile_id] = false;
+            }
+          })
+        );
+
+        setFollowStatus(statuses);
+      } catch {
+        setErrorMsg('Failed to connect to the backend server.');
+        setUsers([]);
+        setFollowStatus({});
+      } finally {
+        setLoading(false);
+      }
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [search, currentUserId]);
+
+  const toggleFollow = async (profileId) => {
+    const isFollowing = followStatus[profileId];
+
+    setFollowLoading((prev) => ({
+      ...prev,
+      [profileId]: true,
+    }));
+
+    setErrorMsg('');
+
+    try {
+      const res = await fetch(`http://localhost:3001/api/profile/${profileId}/follow`, {
+        method: isFollowing ? 'DELETE' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({
+          userId: currentUserId,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setErrorMsg(data.error || 'Failed to update follow status');
+        return;
+      }
+
+      setFollowStatus((prev) => ({
+        ...prev,
+        [profileId]: !isFollowing,
+      }));
+    } catch {
+      setErrorMsg('Failed to connect to the backend server.');
+    } finally {
+      setFollowLoading((prev) => ({
+        ...prev,
+        [profileId]: false,
+      }));
     }
+  };
 
-    return (
-        <main className="page">
-            <section className="page-header">
-                <h1>Find Users</h1>
-                <p>Search for UCLA students by username.</p>
-            </section>
+  const startConversation = async (receiverId) => {
+    try {
+      const res = await fetch('http://localhost:3001/api/messages/conversations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({
+          senderId: currentUserId,
+          receiverId,
+        }),
+      });
 
-            <form onSubmit={handleSearch} className="feed-controls">
-                <input
-                    type="text"
-                    placeholder="Search by username..."
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                />
-                <button type="submit" className="primary-button">Search</button>
-            </form>
+      const data = await res.json();
 
-            <section className="post-list" style={{ marginTop: "20px" }}>
-                {loading ? (
-                    <p className="empty-message">Searching...</p>
-                ) : results.length > 0 ? (
-                    results.map(user => (
-                        <div key={user.profile_id} style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            gap: "12px",
-                            padding: "14px 16px",
-                            borderRadius: "10px",
-                            background: "white",
-                            marginBottom: "10px",
-                            boxShadow: "0 1px 4px rgba(0,0,0,0.08)"
-                        }}>
-                            <div
-                                style={{ cursor: "pointer" }}
-                                onClick={() => navigate(`/profile/${user.profile_id}`)}
-                            >
-                                <p style={{ margin: 0, fontWeight: "bold" }}>{user.username}</p>
-                                <p style={{ margin: 0, color: "#888", fontSize: "13px" }}>{user.full_name}</p>
-                            </div>
-                            <button
-                                className={followStatus[user.profile_id] ? "secondary-button" : "primary-button"}
-                                onClick={() => toggleFollow(user.profile_id)}
-                                style={{ minWidth: "80px", padding: "6px 14px", flexShrink: 0, width: "auto" }}
+      if (!res.ok) {
+        setErrorMsg(data.error || 'Failed to start conversation');
+        return;
+      }
 
-                            >
-                                {followStatus[user.profile_id] ? "Unfollow" : "Follow"}
-                            </button>
-                        </div>
-                    ))
-                ) : search && !loading ? (
-                    <p className="empty-message">No users found.</p>
-                ) : null}
-            </section>
-        </main>
-    );
+      navigate(`/messages/${data.conversation.id}`);
+    } catch {
+      setErrorMsg('Failed to connect to the backend server.');
+    }
+  };
+
+  const getDisplayName = (user) => {
+    return user.full_name || user.username || `User ${user.profile_id}`;
+  };
+
+  const getInitial = (user) => {
+    return getDisplayName(user).charAt(0).toUpperCase();
+  };
+
+  return (
+    <main className="page">
+      <section className="page-header">
+        <h1>Search Users</h1>
+        <p>Find classmates by username, name, or UCLA email.</p>
+      </section>
+
+      <section className="feed-controls">
+        <input
+          type="text"
+          placeholder="Search users"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          autoFocus
+        />
+      </section>
+
+      {errorMsg && <p className="error-message">{errorMsg}</p>}
+
+      {loading ? (
+        <p className="empty-message">Searching...</p>
+      ) : search.trim() && users.length === 0 ? (
+        <p className="empty-message">No users found.</p>
+      ) : !search.trim() ? (
+        <p className="empty-message">Start typing to search for a user.</p>
+      ) : (
+        <section className="post-list">
+          {users.map((user) => (
+            <article className="user-card" key={user.profile_id}>
+              <div className="small-avatar">{getInitial(user)}</div>
+
+              <div
+                className="user-card-info"
+                style={{ cursor: 'pointer' }}
+                onClick={() => navigate(`/profile/${user.profile_id}`)}
+              >
+                <h2>{getDisplayName(user)}</h2>
+                <p className="muted">
+                  @{user.username || `user${user.profile_id}`} · User ID: {user.profile_id}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className={followStatus[user.profile_id] ? 'secondary-button' : 'primary-button'}
+                onClick={() => toggleFollow(user.profile_id)}
+                disabled={followLoading[user.profile_id]}
+                style={{
+                  width: 'auto',
+                  minWidth: '92px',
+                  padding: '10px 16px',
+                  marginTop: 0,
+                }}
+              >
+                {followLoading[user.profile_id]
+                  ? '...'
+                  : followStatus[user.profile_id]
+                    ? 'Unfollow'
+                    : 'Follow'}
+              </button>
+
+              <button
+                type="button"
+                className="user-message-button"
+                onClick={() => startConversation(user.profile_id)}
+              >
+                Message
+              </button>
+            </article>
+          ))}
+        </section>
+      )}
+    </main>
+  );
 }
+
+export default UserSearch;

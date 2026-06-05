@@ -591,3 +591,60 @@ textarea {
     font-size: 14px;
   }
 }
+
+/* User search */
+.user-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 22px;
+  padding: 16px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.small-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 18px;
+  background: #2563eb;
+  color: white;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+
+.user-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-card-info h2 {
+  margin: 0;
+  font-size: 18px;
+  color: #111827;
+}
+
+.user-message-button {
+  border: none;
+  border-radius: 999px;
+  padding: 10px 16px;
+  background: #111827;
+  color: white;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+@media (max-width: 520px) {
+  .user-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .user-message-button {
+    width: 100%;
+  }
+}
