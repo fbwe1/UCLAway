@@ -6,7 +6,7 @@ import CreateRide from './pages/CreateRide';
 import RideDetail from './pages/Ridedetail';
 import Conversation from './pages/Conversation';
 import Messages from './pages/Messages';
-import Profile from './Profile';
+import Profile from './pages/Profile.jsx';
 import BottomNav from './components/BottomNav';
 import Login from './pages/Login.jsx';
 import Signup from './pages/signup.jsx';

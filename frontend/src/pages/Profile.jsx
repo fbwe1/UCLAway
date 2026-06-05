@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import RideCard from "./components/RideCard"
+import RideCard from "../components/RideCard"
 
 export default function Profile({ currentUserId, onLogout }) {
   const [rides, setRides] = useState([])
