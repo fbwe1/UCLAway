@@ -203,7 +203,7 @@ function UserSearch({ currentUserId }) {
               >
                 <h2>{getDisplayName(user)}</h2>
                 <p className="muted">
-                  @{user.username || `user${user.profile_id}`} · User ID: {user.profile_id}
+                  @{user.username || `user${user.profile_id}`}
                 </p>
               </div>
 

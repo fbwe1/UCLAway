@@ -129,7 +129,6 @@ function Conversation({ currentUserId, socket }) {
 
           <div>
             <h1>{conversation?.other_username}</h1>
-            <p className="muted">Conversation #{conversationId}</p>
           </div>
         </div>
 
