@@ -80,6 +80,8 @@ Prompt: What potential problems should I watch for when merging or rebasing my f
 - The test suite for this project was partially AI generated using Claude Sonnet 4.7 model.
 Prompt: Help me write a partial test suite for my rideshare app backend. I need tests for ride creation, filtering by location/date/seats, joining and leaving rides, and follow/unfollow behavior. Please generate a readable starting point that I can edit and verify manually.
 
+Teammate specific in depth AI usage will be reflected in personal final project reports & AI assisted code is marked within the repository. 
+
 ### Credits
 Built by the UCLAway team for CS35L Final Project.
 
