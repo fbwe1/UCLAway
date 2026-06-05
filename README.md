@@ -30,20 +30,20 @@ Our project is a carpooling web application specifically for UCLA students to ma
 - Supabase
 
 ### How to get started with UCLAWay!
-#Backend setup
-Navigate to backend directory
+- Backend setup
+  - Navigate to backend directory
 `cd backend` 
-Install backend dependencies
+  - Install backend dependencies
 `npm install`
-Start up the UCLAway backend server
+  - Start up the UCLAway backend server
 `npm start`
 
-#Frontend setup
-Navigate to frontend directory
+- Frontend setup
+  - Navigate to frontend directory
 `cd frontend`
-Install frontend dependencies
+  - Install frontend dependencies
 `npm install`
-Start up the development server to view the UCLAway web frontend
+  - Start up the development server to view the UCLAway web frontend
 `npm run dev`
 
 # Supabase setup
@@ -53,7 +53,7 @@ Start up the development server to view the UCLAway web frontend
 # Tests
 ([ToDo: add steps here for how to run tests, functionalities tested, etc.]) 
 
-### Features ([Todo: add all relevant/necessary features here])
+### Features
 - Login and Sign-up: Only UCLA emails, bcrypt password hashing
 - Post Comments or Private Message to coordinate and confirm rides
 - Create, join, and delete carpool groups
