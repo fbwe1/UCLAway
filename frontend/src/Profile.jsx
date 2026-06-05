@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import RideCard from "./components/RideCard"
 
-export default function Profile({ currentUserId }) {
+export default function Profile({ currentUserId, onLogout }) {
   const [rides, setRides] = useState([])
   const [history, setHistory] = useState([])
   const [profileData, setProfileData] = useState(null)
@@ -86,6 +86,14 @@ export default function Profile({ currentUserId }) {
           <p>Total Rides</p>
         </div>
       </section>
+
+      <button
+        className="secondary-button"
+        style={{ marginBottom: "16px" }}
+        onClick={onLogout}
+      >
+        Logout
+      </button>
 
       <button
         className="secondary-button"
