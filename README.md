@@ -54,21 +54,20 @@ Start up the development server to view the UCLAway web frontend
 ([ToDo: add steps here for how to run tests, functionalities tested, etc.]) 
 
 ### Features ([Todo: add all relevant/necessary features here])
-- Login and Sign-up (Only UCLA emails!)
-  bcrypt password hashing
+- Login and Sign-up: Only UCLA emails, bcrypt password hashing
 - Post Comments or Private Message to coordinate and confirm rides
-- Direct messaging (DM)
 - Create, join, and delete carpool groups
 - Drop-Off and Pick-up locations, Pick-Up times and Ride-specific details
-- Real-Time seat availability 
+- Real-Time seat availability
+- Search for other UCLA students who are registered with UCLAWay!
 
 ### User security and privacy
 - Regex credential verification for password and ucla email
 - Password requirements
   At least one upper-case letter, lower-case letter, digit, and special character. 8 character minimum. 
 - JSON Web Token (JWT) Authentication for user identification
-  Components: JWT secret key (base-64 encoded), unique user id, student's UCLA email
-  Generated upon login and stored in browser localStorage (outside of the backend server). Token deleted upon logout. Also, since the JWT expires after 1 hour, the user is logged out upon expiration. 
+    - Components: JWT secret key (base-64 encoded), unique user id, student's UCLA email
+    - Generated upon login and stored in browser localStorage (outside of the backend server). Token deleted upon logout. Also, since the JWT expires after 1 hour, the user is logged out upon expiration. 
 
 Feel free to provide your input or feedback to our project!
 
