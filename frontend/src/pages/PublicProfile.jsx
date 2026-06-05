@@ -12,13 +12,25 @@ export default function PublicProfile({ currentUserId }) {
 
   const token = localStorage.getItem("token");
   const authHeader = { Authorization: `Bearer ${token}` };
-
+  //expired token = redirect to login
+  const handleUnauthenticated = (res) => {
+    //unauthorized case
+    if (res.status === 401) {
+      localStorage.removeItem("token");
+      window.location.reload();
+      return true;}
+    return false;
+  };
   const fetchProfile = async () => {
     try {
       const [profileRes, followRes] = await Promise.all([
         fetch(`http://localhost:3001/api/profile/${id}`, { headers: authHeader }),
         fetch(`http://localhost:3001/api/profile/${id}/follow-status?userId=${currentUserId}`, { headers: authHeader })
       ]);
+      if (handleUnauthenticated(profileRes)){
+        return;}
+      if (handleUnauthenticated(followRes)){
+        return;}
       const profileData = await profileRes.json();
       const followData = await followRes.json();
 
@@ -40,11 +52,13 @@ export default function PublicProfile({ currentUserId }) {
   const toggleFollow = async () => {
     setFollowLoading(true);
     try {
-      await fetch(`http://localhost:3001/api/profile/${id}/follow`, {
+      const res = await fetch(`http://localhost:3001/api/profile/${id}/follow`, {
         method: isFollowing ? 'DELETE' : 'POST',
         headers: { ...authHeader, 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: currentUserId })
       });
+      if (handleUnauthenticated(res)){
+        return;}
       setIsFollowing(prev => !prev);
       setProfile(prev => ({
         ...prev,

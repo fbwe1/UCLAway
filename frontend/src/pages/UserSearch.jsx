@@ -10,7 +10,14 @@ export default function UserSearch({ currentUserId }) {
 
     const token = localStorage.getItem("token");
     const authHeader = { Authorization: `Bearer ${token}` };
-
+    //expired token = redirect to login
+  const handleUnauthenticated = (res) => {
+    if (res.status === 401) {
+      localStorage.removeItem("token");
+      window.location.reload();
+      return true;}
+    return false;
+  };
     async function handleSearch(e) {
         e.preventDefault();
         if (!search.trim()) return;
@@ -20,6 +27,8 @@ export default function UserSearch({ currentUserId }) {
                 `http://localhost:3001/api/profile?search=${encodeURIComponent(search)}`,
                 { headers: authHeader }
             );
+            if (handleUnauthenticated(res)){
+                return;}
             const data = await res.json();
             const users = Array.isArray(data) ? data.filter(u => u.profile_id !== currentUserId) : [];
             setResults(users);
@@ -31,6 +40,8 @@ export default function UserSearch({ currentUserId }) {
                     `http://localhost:3001/api/profile/${user.profile_id}/follow-status?userId=${currentUserId}`,
                     { headers: authHeader }
                 );
+                if (handleUnauthenticated(r)){
+                    return;}
                 const d = await r.json();
                 statuses[user.profile_id] = d.isFollowing;
             }));
@@ -45,11 +56,13 @@ export default function UserSearch({ currentUserId }) {
     async function toggleFollow(profileId) {
         const isFollowing = followStatus[profileId];
         try {
-            await fetch(`http://localhost:3001/api/profile/${profileId}/follow`, {
+            const res = await fetch(`http://localhost:3001/api/profile/${profileId}/follow`, {
                 method: isFollowing ? "DELETE" : "POST",
                 headers: { ...authHeader, "Content-Type": "application/json" },
                 body: JSON.stringify({ userId: currentUserId })
             });
+            if (handleUnauthenticated(res)){
+                return;}
             setFollowStatus(prev => ({ ...prev, [profileId]: !isFollowing }));
         } catch (err) {
             console.error(err);
