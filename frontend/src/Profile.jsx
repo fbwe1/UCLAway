@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react"
-import { useNavigate } from "react-router-dom"
 import RideCard from "./components/RideCard"
 
 export default function Profile({ currentUserId, onLogout }) {
@@ -7,7 +6,6 @@ export default function Profile({ currentUserId, onLogout }) {
   const [history, setHistory] = useState([])
   const [profileData, setProfileData] = useState(null)
   const [loading, setLoading] = useState(true)
-  const navigate = useNavigate();
 
   const token = localStorage.getItem("token");
   const authHeader = { Authorization: `Bearer ${token}` };
@@ -93,14 +91,6 @@ export default function Profile({ currentUserId, onLogout }) {
         onClick={onLogout}
       >
         Logout
-      </button>
-
-      <button
-        className="secondary-button"
-        style={{ marginBottom: "16px" }}
-        onClick={() => navigate("/users")}
-      >
-        🔍 Find Users
       </button>
 
       <h2 className="section-title">My Joined Rides</h2>
