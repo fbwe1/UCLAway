@@ -64,7 +64,7 @@ Start up the development server to view the UCLAway web frontend
 ### User security and privacy
 - Regex credential verification for password and ucla email
 - Password requirements
-  At least one upper-case letter, lower-case letter, digit, and special character. 8 character minimum. 
+  - At least one upper-case letter, lower-case letter, digit, and special character. 8 character minimum. 
 - JSON Web Token (JWT) Authentication for user identification
     - Components: JWT secret key (base-64 encoded), unique user id, student's UCLA email
     - Generated upon login and stored in browser localStorage (outside of the backend server). Token deleted upon logout. Also, since the JWT expires after 1 hour, the user is logged out upon expiration. 
