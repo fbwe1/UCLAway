@@ -10,6 +10,7 @@ function RideDetail({ currentUserId, socket }) {
   const [errorMsg, setErrorMsg] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [removingRider, setRemovingRider] = useState(null);
+  const [usernames, setUsernames] = useState({});
 
   const [editing, setEditing] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
@@ -24,6 +25,9 @@ function RideDetail({ currentUserId, socket }) {
 
  // TODO: Add to database later
   const [note, setNote] = useState('');
+
+
+  
 
   const toDatetimeLocal = (value) => {
     if (!value) return '';
@@ -78,6 +82,24 @@ function RideDetail({ currentUserId, socket }) {
     setEditDepartureTime(toDatetimeLocal(ride.departure_time));
     setEditIsRoundTrip(Boolean(ride.is_round_trip));
     setEditReturnTime(toDatetimeLocal(ride.return_time));
+  }, [ride]);
+
+  // Fetch usernames for creator and all passengers
+  useEffect(() => {
+    if (!ride) return;
+    const token = localStorage.getItem("token");
+    const ids = [ride.creator_user_id, ...(ride.passengers || [])];
+    Promise.all(
+      ids.map(uid =>
+        fetch(`http://localhost:3001/api/profile/${uid}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }).then(r => r.json())
+      )
+    ).then(profiles => {
+      const map = {};
+      profiles.forEach(p => { if (p.profile_id) map[p.profile_id] = p.username; });
+      setUsernames(map);
+    }).catch(console.error);
   }, [ride]);
 
   // Listen for real-time ride updates via Socket.io
@@ -144,7 +166,7 @@ function RideDetail({ currentUserId, socket }) {
   };
 
   const handleRemoveRider = async (riderId) => {
-    if (!window.confirm(`Remove rider ${riderId}? They will not be able to rejoin.`)) return;
+    if (!window.confirm(`Remove ${usernames[riderId] || `User ${riderId}`}? They will not be able to rejoin.`)) return;
     setRemovingRider(riderId);
     setErrorMsg('');
 
@@ -370,8 +392,7 @@ function RideDetail({ currentUserId, socket }) {
       {/* Creator */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
         <span style={{ fontSize: '14px' }}>
-          👤 <strong>User {ride.creator_user_id}</strong>
-          {/* TODO: replace User {id} with username after auth merges */}
+          👤 <strong>{usernames[ride.creator_user_id] || `User ${ride.creator_user_id}`}</strong>
           <span style={{
             marginLeft: '8px',
             backgroundColor: '#4CAF50',
@@ -411,8 +432,7 @@ function RideDetail({ currentUserId, socket }) {
             marginBottom: '8px'
           }}>
             <span style={{ fontSize: '14px' }}>
-              👤 User {passengerId}
-              {/* TODO: replace User {id} with username after auth merges */}
+              👤 {usernames[passengerId] || `User ${passengerId}`}
             </span>
             <div style={{ display: 'flex', gap: '6px' }}>
               {/* Message button — hidden for yourself */}

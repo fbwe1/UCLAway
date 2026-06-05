@@ -3,40 +3,42 @@ import '../App.css'
 import { useState } from 'react'
 
 export default function Signup({ onBackToLogin }) {
-    const [userData, setuserData] = useState({ 
+    const [userData, setuserData] = useState({
         username: "",
         first_name: "",
         last_name: "",
         ucla_email: "",
         password: "",
-    }
-    )
+    })
     const [message, setMessage] = useState("");
 
-    async function handleData(e){
+    async function handleData(e) {
         e.preventDefault();
         const signupData = {
-            ...userData,
+            username: userData.username,
             full_name: `${userData.first_name} ${userData.last_name}`.trim(),
+            ucla_email: userData.ucla_email,
+            password: userData.password,
         };
-        console.log("Frontend sending:", signupData);
-        try{
+        try {
             const res = await fetch("http://localhost:3001/auth/signup", {
                 method: "POST",
                 headers: {
-                "Content-Type": "application/json",
+                    "Content-Type": "application/json",
                 },
                 body: JSON.stringify(signupData),
             });
             const data = await res.json();
-
-            console.log("Backend response:", data);
             setMessage(data.message || "Signup complete.");
+            if (data.status) {
+                setTimeout(() => onBackToLogin(), 1500);
+            }
         } catch (error) {
             console.error("signup req failed:", error);
             setMessage("Couldn't connect to the server.");
         }
     }
+
     return (
         <div className="login-container">
             <form onSubmit={handleData}>
@@ -48,7 +50,7 @@ export default function Signup({ onBackToLogin }) {
                     onChange={e => setuserData({...userData, ucla_email: e.target.value})}/>
                 </div>
                 <div className="input">
-                    Username: <input type="text" placeholder="Username" 
+                    Username: <input type="text" placeholder="Username"
                     onChange={e => setuserData({...userData, username: e.target.value})}/>
                 </div>
                 <div className="input">
@@ -60,8 +62,8 @@ export default function Signup({ onBackToLogin }) {
                     onChange={e => setuserData({...userData, last_name: e.target.value})}/>
                 </div>
                 <div className="input">
-                Password: <input type="password" placeholder="Password"
-                onChange={e => setuserData({...userData, password: e.target.value})}/>
+                    Password: <input type="password" placeholder="Password"
+                    onChange={e => setuserData({...userData, password: e.target.value})}/>
                 </div>
                 <button type="submit" className="signin-container button">
                     Signup
@@ -70,5 +72,4 @@ export default function Signup({ onBackToLogin }) {
             </form>
         </div>
     )
-
 }

@@ -1,32 +1,39 @@
 import { useEffect, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import RideCard from "./components/RideCard"
 
 export default function Profile({ currentUserId }) {
   const [rides, setRides] = useState([])
   const [history, setHistory] = useState([])
+  const [profileData, setProfileData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const navigate = useNavigate();
+
+  const token = localStorage.getItem("token");
+  const authHeader = { Authorization: `Bearer ${token}` };
+
+  const fetchProfile = async () => {
+    try {
+      const res = await fetch(
+        `http://localhost:3001/api/profile/${currentUserId}`,
+        { headers: authHeader }
+      );
+      const data = await res.json();
+      setProfileData(data);
+    } catch (err) {
+      console.error("Error fetching profile:", err);
+    }
+  }
 
   const fetchRides = () => {
-    setLoading(true)
-    // ensure JWT auth included
-    const token = localStorage.getItem("token");
+    setLoading(true);
     if (!token) {
-      console.error("No JWT found. User must log in again");
       setLoading(false);
       return;
     }
-    //shared header for both fetch APIs
-    const authHeader = {
-      Authorization: `Bearer ${token}`
-    }
-    // Fetch active rides and history in parallel
     Promise.all([
-      fetch("http://localhost:3001/api/rides",{
-        headers: authHeader,
-      }).then(res => res.json()),
-      fetch(`http://localhost:3001/api/rides/history?userId=${currentUserId}`,{
-        headers: authHeader,
-      }).then(res => res.json())
+      fetch("http://localhost:3001/api/rides", { headers: authHeader }).then(res => res.json()),
+      fetch(`http://localhost:3001/api/rides/history?userId=${currentUserId}`, { headers: authHeader }).then(res => res.json())
     ])
       .then(([activeData, historyData]) => {
         setRides(Array.isArray(activeData) ? activeData : [])
@@ -40,8 +47,9 @@ export default function Profile({ currentUserId }) {
   }
 
   useEffect(() => {
-    fetchRides()
-  }, [])
+    fetchProfile();
+    fetchRides();
+  }, [currentUserId])
 
   const createdRides = [...rides, ...history]
     .filter((ride) => Number(ride.creator_user_id) === Number(currentUserId))
@@ -52,31 +60,40 @@ export default function Profile({ currentUserId }) {
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
 
   const totalRides = createdRides.length + joinedRides.length
+  const username = localStorage.getItem("username") || "User";
 
   return (
     <main className="page">
       <section className="profile-card">
-        <div className="avatar">U</div>
+        <div className="avatar">{username[0]?.toUpperCase()}</div>
         <div>
-          <h1>User Profile</h1>
-          <p className="muted">User ID: {currentUserId}</p>
+          <h1>{username}</h1>
+          <p className="muted">{profileData?.full_name}</p>
         </div>
       </section>
 
       <section className="stats-grid">
         <div className="stat-card">
-          <h2>{createdRides.length}</h2>
-          <p>Created</p>
+          <h2>{profileData?.followersCount ?? "—"}</h2>
+          <p>Followers</p>
         </div>
         <div className="stat-card">
-          <h2>{joinedRides.length}</h2>
-          <p>Joined</p>
+          <h2>{profileData?.followingCount ?? "—"}</h2>
+          <p>Following</p>
         </div>
         <div className="stat-card">
           <h2>{totalRides}</h2>
-          <p>Total</p>
+          <p>Total Rides</p>
         </div>
       </section>
+
+      <button
+        className="secondary-button"
+        style={{ marginBottom: "16px" }}
+        onClick={() => navigate("/users")}
+      >
+        🔍 Find Users
+      </button>
 
       <h2 className="section-title">My Joined Rides</h2>
       <section className="post-list">
@@ -84,12 +101,7 @@ export default function Profile({ currentUserId }) {
           <p className="empty-message">Loading rides...</p>
         ) : joinedRides.length > 0 ? (
           joinedRides.map((ride) => (
-            <RideCard
-              key={ride.id}
-              ride={ride}
-              currentUserId={currentUserId}
-              onUpdate={fetchRides}
-            />
+            <RideCard key={ride.id} ride={ride} currentUserId={currentUserId} onUpdate={fetchRides} />
           ))
         ) : (
           <p className="empty-message">You have not joined any rides yet.</p>
@@ -102,12 +114,7 @@ export default function Profile({ currentUserId }) {
           <p className="empty-message">Loading rides...</p>
         ) : createdRides.length > 0 ? (
           createdRides.map((ride) => (
-            <RideCard
-              key={ride.id}
-              ride={ride}
-              currentUserId={currentUserId}
-              onUpdate={fetchRides}
-            />
+            <RideCard key={ride.id} ride={ride} currentUserId={currentUserId} onUpdate={fetchRides} />
           ))
         ) : (
           <p className="empty-message">You have not created any rides yet.</p>

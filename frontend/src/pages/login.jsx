@@ -1,6 +1,7 @@
 import React from 'react'
 import '../App.css'
 import { useState } from 'react'
+
 export default function Login({ onCreateAccount, onForgotPassword, onLogin }) {
     const [loginData, setLoginData] = useState({
         ucla_email: "",
@@ -8,6 +9,7 @@ export default function Login({ onCreateAccount, onForgotPassword, onLogin }) {
     })
     const [message, setMessage] = useState("");
     const canLogin = loginData.ucla_email.length > 0 && loginData.password.length > 0;
+
     async function handleLogin(e) {
         e.preventDefault();
         try {
@@ -19,10 +21,12 @@ export default function Login({ onCreateAccount, onForgotPassword, onLogin }) {
                 body: JSON.stringify(loginData),
             });
             const data = await res.json();
-            if (data.success) {
+            if (data.status) {
                 localStorage.setItem("token", data.token);
+                localStorage.setItem("userId", data.userId);
+                localStorage.setItem("username", data.username);
                 setMessage("Login successful!");
-                onLogin(loginData.ucla_email);
+                onLogin(loginData.ucla_email, data.userId, data.username);
             } else {
                 setMessage(data.message || "Login failed.... Please try again!");
             }
@@ -31,6 +35,7 @@ export default function Login({ onCreateAccount, onForgotPassword, onLogin }) {
             setMessage("Couldn't connect to the server.");
         }
     }
+
     return (
         <div className="login-container login-page">
             <form className="login-form" onSubmit={handleLogin}>
