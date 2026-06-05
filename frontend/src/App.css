@@ -952,6 +952,24 @@ textarea {
   gap: 8px;
 }
 
+.person-name-button {
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.person-name-button:hover {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
 .small-primary-button,
 .small-secondary-button {
   border-radius: 999px;

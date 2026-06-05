@@ -281,6 +281,14 @@ function RideDetail({ currentUserId, socket }) {
     }
   };
 
+  const handleViewProfile = (userId) => {
+    if (Number(userId) === Number(currentUserId)) {
+      navigate('/profile');
+    } else {
+      navigate(`/profile/${userId}`);
+    }
+  };
+
   if (loading) return <div style={{ padding: '20px' }}>Loading...</div>;
   if (errorMsg && !ride) return (
     <div style={{ padding: '20px' }}>
@@ -399,17 +407,19 @@ function RideDetail({ currentUserId, socket }) {
 
         {/* Creator */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-          <span style={{ fontSize: '14px' }}>
-            👤 <strong>{usernames[ride.creator_user_id] || `User ${ride.creator_user_id}`}</strong>
-            <span style={{
-              marginLeft: '8px',
-              backgroundColor: '#4CAF50',
-              color: 'white',
-              padding: '1px 6px',
-              borderRadius: '8px',
-              fontSize: '11px'
-            }}>Driver</span>
-          </span>
+          <div className="person-info">
+            <button
+              type="button"
+              className="person-name-button"
+              onClick={() => handleViewProfile(ride.creator_user_id)}
+            >
+              👤 {usernames[ride.creator_user_id] || `User ${ride.creator_user_id}`}
+            </button>
+
+            <span className="driver-badge">
+              Driver
+            </span>
+          </div>
           {/* Don't show message button for yourself */}
           {ride.creator_user_id !== currentUserId && (
             <button
@@ -439,9 +449,13 @@ function RideDetail({ currentUserId, socket }) {
               alignItems: 'center',
               marginBottom: '8px'
             }}>
-              <span style={{ fontSize: '14px' }}>
+              <button
+                type="button"
+                className="person-name-button"
+                onClick={() => handleViewProfile(passengerId)}
+              >
                 👤 {usernames[passengerId] || `User ${passengerId}`}
-              </span>
+              </button>
               <div style={{ display: 'flex', gap: '6px' }}>
                 {/* Message button — hidden for yourself */}
                 {passengerId !== currentUserId && (
