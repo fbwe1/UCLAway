@@ -27,7 +27,7 @@ function App() {
   );
   const [token, setToken] = useState(localStorage.getItem("token"));
   function handleLogin(uclaEmail, token) {
-    localStorage.setItem("token", token);
+    //localStorage.setItem("token", token);
     setToken(token);
     setCurrentUserEmail(uclaEmail);
   }
