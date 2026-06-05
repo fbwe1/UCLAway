@@ -17,9 +17,21 @@ function Conversation({ currentUserId, socket }) {
 
   const fetchMessages = async () => {
     try {
+      // ensure JWT auth included
+      const token = localStorage.getItem("token");
+      if (!token){
+        console.error("No JWT found. User must log in again");
+        setErrorMsg("Please Log In Again!");
+        setLoading(false);
+        return;
+      }
       const res = await fetch(
-        `http://localhost:3001/api/messages/conversations/${conversationId}?userId=${currentUserId}`
-      );
+        `http://localhost:3001/api/messages/conversations/${conversationId}?userId=${currentUserId}`,
+        {
+          headers:{
+            Authorization: `Bearer ${token}`,
+          }
+        });
       const data = await res.json();
       if (!res.ok) {
         setErrorMsg(data.error || 'Failed to load conversation');
@@ -37,11 +49,20 @@ function Conversation({ currentUserId, socket }) {
 
   const markAsRead = async () => {
     try {
+      const token = localStorage.getItem("token");
+      if (!token){
+        console.error("No JWT found. User must log in again");
+        setErrorMsg("Please Log In Again!");
+        setLoading(false);
+        return;
+      }
       await fetch(
         `http://localhost:3001/api/messages/conversations/${conversationId}/read`,
         {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+           },
           body: JSON.stringify({ userId: currentUserId })
         }
       );
@@ -72,11 +93,20 @@ function Conversation({ currentUserId, socket }) {
     setSending(true);
     setErrorMsg('');
     try {
+      const token = localStorage.getItem("token")
+      if (!token){
+        console.error("No JWT found. User must log in again");
+        setErrorMsg("Please Log In Again!");
+        setSending(false);
+        return;
+      }
       const res = await fetch(
         `http://localhost:3001/api/messages/conversations/${conversationId}`,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+           },
           body: JSON.stringify({ senderId: currentUserId, content: newMessage.trim() })
         }
       );

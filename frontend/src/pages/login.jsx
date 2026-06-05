@@ -20,10 +20,11 @@ export default function Login({ onCreateAccount, onForgotPassword, onLogin }) {
             });
             const data = await res.json();
             if (data.success) {
+                localStorage.setItem("token", data.token);
                 setMessage("Login successful!");
                 onLogin(loginData.ucla_email);
             } else {
-                setMessage(data.message || "Login failed... Please try again.");
+                setMessage(data.message || "Login failed.... Please try again!");
             }
         } catch (error) {
             console.error("login req failed:", error);

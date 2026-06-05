@@ -5,11 +5,21 @@ function Messages({ currentUserId, socket }) {
   const navigate = useNavigate();
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
-
   const fetchConversations = async () => {
     try {
+      const token = localStorage.getItem("token");
+      if (!token){
+        console.error("No JWT found. User must log in again");
+        setLoading(false);
+        return;
+      }
       const res = await fetch(
-        `http://localhost:3001/api/messages/conversations?userId=${currentUserId}`
+        `http://localhost:3001/api/messages/conversations?userId=${currentUserId}`,
+        {
+          headers:{
+            Authorization: `Bearer ${token}`,
+          }
+        }
       );
       const data = await res.json();
       if (res.ok) {

@@ -2,44 +2,42 @@ import React from 'react'
 import '../App.css'
 import { useEffect, useState } from 'react'
 import supabase from '../supabaseClient'
-
+// Prompted GPT to create this forgot password page
+// for fun: wanted to use as am "AI baseline" to compare with my own work
+/* 
+gave GPT the cases that I wanted it to cover (non-matching passwords & simple passwords)
+and how I wanted to connect it to the existing login page as a forgot password feature
+*/
 export default function ResetPassword({ onBackToLogin }) {
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [message, setMessage] = useState("");
     const canSubmit = password.length > 0 && confirmPassword.length > 0;
-
     useEffect(() => {
         async function loadRecoverySession() {
             const code = new URLSearchParams(window.location.search).get("code");
-
+            
             if (code && supabase) {
                 await supabase.auth.exchangeCodeForSession(code);
             }
         }
-
         loadRecoverySession();
     }, []);
-
     async function handleResetPassword(e) {
         e.preventDefault();
-
         if (password !== confirmPassword) {
-            setMessage("Passwords do not match.");
+            setMessage("Passwords don't match.");
             return;
         }
-
         const complexPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])/;
         if (!complexPasswordRegex.test(password)) {
-            setMessage("You need to make a more complex password");
+            setMessage("Please make a more complex password!");
             return;
         }
-
         if (!supabase) {
-            setMessage("Supabase is not configured.");
+            setMessage("Supabase not configured.");
             return;
         }
-
         const { error } = await supabase.auth.updateUser({
             password: password,
         });
@@ -50,7 +48,6 @@ export default function ResetPassword({ onBackToLogin }) {
             setMessage("Password updated successfully.");
         }
     }
-
     return (
         <div className="login-container">
             <form onSubmit={handleResetPassword}>

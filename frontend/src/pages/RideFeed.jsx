@@ -35,7 +35,19 @@ function RideFeed({ currentUserId, socket }) {
 
   const fetchRides = (filters = activeFiltersRef.current) => {
     setLoading(true);
-    fetch(buildRidesUrl(filters))
+    // ensure JWT auth included
+    const token = localStorage.getItem("token");
+    if (!token){
+      console.error("No JWT found. User must log in again");
+      setRides([]);
+      setLoading(false);
+      return;
+    }
+    fetch(buildRidesUrl(filters), {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
       .then(res => res.json())
       .then(data => {
         setRides(Array.isArray(data) ? data : []);

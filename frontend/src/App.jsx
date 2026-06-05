@@ -8,7 +8,7 @@ import Conversation from './pages/Conversation';
 import Messages from './pages/Messages';
 import Profile from './Profile';
 import BottomNav from './components/BottomNav';
-import Login from './pages/login.jsx';
+import Login from './pages/Login.jsx';
 import Signup from './pages/signup.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
@@ -22,12 +22,19 @@ const currentUserId = parseInt(params.get('userId')) || 251;
 function App() {
   const startingPage = window.location.pathname === '/reset-password' ? 'reset-password' : 'login';
   const [currentPage, setCurrentPage] = useState(startingPage);
-  const [currentUserEmail, setCurrentUserEmail] = useState('');
-
-  function handleLogin(uclaEmail) {
+  const [currentUserEmail, setCurrentUserEmail] = useState(    
+    localStorage.getItem("token") ? "logged-in" : ""
+  );
+  const [token, setToken] = useState(localStorage.getItem("token"));
+  function handleLogin(uclaEmail, token) {
+    localStorage.setItem("token", token);
+    setToken(token);
     setCurrentUserEmail(uclaEmail);
   }
   function handleLogout() {
+    // clear jwt and return to login pg.
+    localStorage.removeItem("token"); 
+    setToken("");
     setCurrentUserEmail('');
     setCurrentPage('login');
   }

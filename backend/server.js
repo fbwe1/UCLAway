@@ -4,6 +4,7 @@ const cors = require("cors");
 const http = require("http");
 const { Server } = require("socket.io");
 const { startCronJobs } = require("./cron");
+const jwtMiddleware = require("./middlewares/jwtMiddlewares");
 
 const app = express();
 const server = http.createServer(app);
@@ -34,9 +35,9 @@ const messageRoutes = require('./routes/messages');
 const profileRoutes = require('./routes/profileRoutes');
 
 app.use('/auth', authRoutes);
-app.use('/api/rides', rideRoutes);
-app.use('/api/messages', messageRoutes);
-app.use('/api/profile', profileRoutes);
+app.use('/api/rides', jwtMiddleware, rideRoutes);
+app.use('/api/messages', jwtMiddleware, messageRoutes);
+app.use('/api/profile', jwtMiddleware, profileRoutes);  
 
 const PORT = 3001;
 server.listen(PORT, () => {
