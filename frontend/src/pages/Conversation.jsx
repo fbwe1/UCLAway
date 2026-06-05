@@ -100,77 +100,92 @@ function Conversation({ currentUserId, socket }) {
     });
   };
 
-  if (loading) return <div style={{ padding: '20px' }}>Loading...</div>;
-  if (errorMsg && !conversation) return (
-    <div style={{ padding: '20px' }}>
-      <p style={{ color: 'red' }}>{errorMsg}</p>
-      <button onClick={() => navigate(-1)}>← Go Back</button>
-    </div>
-  );
+  if (loading) {
+    return (
+      <main className="page">
+        <p className="empty-message">Loading conversation...</p>
+      </main>
+    );
+  }
+
+  if (errorMsg && !conversation) {
+    return (
+      <main className="page">
+        <p className="error-message">{errorMsg}</p>
+        <button className="secondary-button" onClick={() => navigate(-1)}>
+          Back
+        </button>
+      </main>
+    );
+  }
 
   return (
-    <div style={{ maxWidth: '600px', margin: '0 auto', display: 'flex', flexDirection: 'column', height: 'calc(100vh - 180px)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingBottom: '12px', borderBottom: '1px solid #ccc', marginBottom: '12px' }}>
-        <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', color: '#4CAF50', fontSize: '15px', cursor: 'pointer', fontWeight: 'bold', padding: 0 }}>←</button>
-        <div>
-          <h3 style={{ margin: 0 }}>👤 {conversation?.other_username}</h3>
-          <p style={{ margin: 0, color: '#888', fontSize: '12px' }}>Conversation #{conversationId}</p>
+    <main className="page conversation-page">
+      <section className="chat-card">
+        <div className="chat-header">
+          <button className="back-link" onClick={() => navigate(-1)}>
+            ← Back
+          </button>
+
+          <div>
+            <h1>{conversation?.other_username}</h1>
+            <p className="muted">Conversation #{conversationId}</p>
+          </div>
         </div>
-      </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', paddingBottom: '8px' }}>
-        {messages.length === 0 ? (
-          <p style={{ color: '#aaa', textAlign: 'center', marginTop: '40px' }}>No messages yet. Say hello!</p>
-        ) : (
-          messages.map(msg => {
-            const isMine = msg.sender_id === currentUserId;
-            return (
-              <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isMine ? 'flex-end' : 'flex-start' }}>
-                <div style={{
-                  backgroundColor: isMine ? '#4CAF50' : '#2a2a2a',
-                  color: 'white',
-                  padding: '10px 14px',
-                  borderRadius: isMine ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                  maxWidth: '75%', fontSize: '14px', wordBreak: 'break-word'
-                }}>
-                  {msg.content}
+        <div className="message-list">
+          {messages.length === 0 ? (
+            <p className="empty-chat-message">No messages yet. Say hello!</p>
+          ) : (
+            messages.map((msg) => {
+              const isMine = msg.sender_id === currentUserId;
+
+              return (
+                <div
+                  key={msg.id}
+                  className={`message-row ${isMine ? 'mine' : 'theirs'}`}
+                >
+                  <div className="message-bubble">
+                    {msg.content}
+                  </div>
+
+                  <span className="message-time">
+                    {formatTime(msg.created_at)}
+                    {isMine && (
+                      <span className="read-mark">
+                        {msg.read ? ' ✓✓' : ' ✓'}
+                      </span>
+                    )}
+                  </span>
                 </div>
-                <span style={{ color: '#aaa', fontSize: '11px', marginTop: '2px' }}>
-                  {formatTime(msg.created_at)}
-                  {isMine && <span style={{ marginLeft: '6px' }}>{msg.read ? '✓✓' : '✓'}</span>}
-                </span>
-              </div>
-            );
-          })
-        )}
-        <div ref={bottomRef} />
-      </div>
+              );
+            })
+          )}
 
-      {errorMsg && <p style={{ color: 'red', fontSize: '13px' }}>{errorMsg}</p>}
+          <div ref={bottomRef} />
+        </div>
 
-      <div style={{ display: 'flex', gap: '8px', paddingTop: '12px', paddingBottom: '16px', borderTop: '1px solid #ccc' }}>
-        <textarea
-          value={newMessage}
-          onChange={e => setNewMessage(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Type a message... (Enter to send, Shift+Enter for new line)"
-          rows={2}
-          style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #ccc', fontSize: '14px', resize: 'none', boxSizing: 'border-box' }}
-        />
-        <button
-          onClick={handleSend}
-          disabled={sending || !newMessage.trim()}
-          style={{
-            backgroundColor: sending || !newMessage.trim() ? '#ccc' : '#4CAF50',
-            color: 'white', border: 'none', borderRadius: '8px',
-            padding: '0 20px', fontWeight: 'bold',
-            cursor: sending || !newMessage.trim() ? 'not-allowed' : 'pointer', fontSize: '14px'
-          }}
-        >
-          {sending ? '...' : 'Send'}
-        </button>
-      </div>
-    </div>
+        {errorMsg && <p className="error-message">{errorMsg}</p>}
+
+        <div className="message-compose">
+          <textarea
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Type a message..."
+            rows={2}
+          />
+
+          <button
+            className="primary-button message-send-button"
+            onClick={handleSend}
+            disabled={sending || !newMessage.trim()}
+          >
+            {sending ? '...' : 'Send'}
+          </button>
+        </div>
+      </section>
+    </main>
   );
 }
 
