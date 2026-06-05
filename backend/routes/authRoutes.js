@@ -2,9 +2,9 @@ const express = require("express");
 const supabase = require('../supabaseclient.js');
 const router = express.Router()
 const jwt = require('jsonwebtoken')
-const { generateToken } = require("../services/jwtService") 
-router.post("/signup", async (req, res) => {
+const { generateToken } = require("../services/jwtService")
 
+router.post("/signup", async (req, res) => {
     // credential verification
     const uclaEmailRegex = /^[A-Za-z0-9._%+-]+@(g\.)?ucla\.edu$/i;
     const complexPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])/;
@@ -62,20 +62,22 @@ router.post("/login", async (req,res) =>{
       if (error){
         return res.json({
             status:false,
-            message: "User Not Found"})
+            message: "Invalid email or password fields"})
       } else{
-        //JWT generated - retrieved from supabase
+        // user JWT
         const token = generateToken({
             id: data.user.id, 
             email: data.user.email
         });
-        return res.status(200).json({success: true, token})
+        return res.status(200).json({
+            success: true, token})
       }
     } catch(error){
         console.log(error)
         return res.status(400).send(error.message)
     }
 })
+// Prompted ChatGPT to create the forgot password feat. below
 router.post("/forgot-password", async (req, res) => {
     try {
         const { ucla_email } = req.body;

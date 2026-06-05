@@ -22,9 +22,13 @@ const currentUserId = parseInt(params.get('userId')) || 251;
 function App() {
   const startingPage = window.location.pathname === '/reset-password' ? 'reset-password' : 'login';
   const [currentPage, setCurrentPage] = useState(startingPage);
-  const [currentUserEmail, setCurrentUserEmail] = useState('');
+  const [currentUserEmail, setCurrentUserEmail] = useState(    
+    localStorage.getItem("token") ? "logged-in" : ""
+  );
   const [token, setToken] = useState(localStorage.getItem("token"));
-  function handleLogin(uclaEmail) {
+  function handleLogin(uclaEmail, token) {
+    localStorage.setItem("token", token);
+    setToken(token);
     setCurrentUserEmail(uclaEmail);
   }
   function handleLogout() {

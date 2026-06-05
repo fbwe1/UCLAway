@@ -133,12 +133,22 @@ test("signup returns an error when Supabase rejects account creation", async () 
     });
 });
 test("login grants access with correct UCLA email and password", async () => {
+    process.env.JWT_SECRET = process.env.JWT_SECRET || "test-jwt-secret";
     const signInCalls = [];
     const router = createAuthRoutes({
         auth: {
             signInWithPassword: async (payload) => {
                 signInCalls.push(payload);
-                return { data: { session: { access_token: "token" } }, error: null };
+                return {
+                    data: {
+                        user: {
+                            id: "user-uuid-1",
+                            email: "newuser@ucla.edu"
+                        },
+                        session: { access_token: "token" }
+                    },
+                    error: null
+                };
             }
         }
     });
@@ -148,9 +158,8 @@ test("login grants access with correct UCLA email and password", async () => {
     });
 
     assert.equal(response.status, 200);
-    assert.deepEqual(response.body, {
-        success: true
-    });
+    assert.equal(response.body.success, true);
+    assert.equal(typeof response.body.token, "string");
     assert.deepEqual(signInCalls[0], {
         email: "newuser@ucla.edu",
         password: "password123"
@@ -174,7 +183,7 @@ test("login returns an error when credentials are incorrect", async () => {
     assert.equal(response.status, 200);
     assert.deepEqual(response.body, {
         status: false,
-        message: "User Not Found"
+        message: "Invalid email or password fields"
     });
 });
 // forgot password
