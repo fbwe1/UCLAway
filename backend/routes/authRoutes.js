@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const rateLimit = require("express-rate-limit");
-const supabase = require("../supabaseClient");
+const supabase = require("../supabaseclient");
 const { hashPassword, comparePassword } = require("../services/hashService");
 const { generateToken } = require("../services/jwtService");
 

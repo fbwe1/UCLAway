@@ -1,4 +1,4 @@
-const supabase = require("../supabaseClient");
+const supabase = require("../supabaseclient");
 const PROFILE_COLUMNS = "profile_id, username, full_name, ucla_email";
 
 function cleanSearchTerm(value) {
