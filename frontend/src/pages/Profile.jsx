@@ -1,13 +1,11 @@
 import { useEffect, useState } from "react"
-import { useNavigate } from "react-router-dom"
-import RideCard from "./components/RideCard"
+import RideCard from "../components/RideCard"
 
-export default function Profile({ currentUserId }) {
+export default function Profile({ currentUserId, onLogout }) {
   const [rides, setRides] = useState([])
   const [history, setHistory] = useState([])
   const [profileData, setProfileData] = useState(null)
   const [loading, setLoading] = useState(true)
-  const navigate = useNavigate();
 
   const token = localStorage.getItem("token");
   const authHeader = { Authorization: `Bearer ${token}` };
@@ -90,9 +88,9 @@ export default function Profile({ currentUserId }) {
       <button
         className="secondary-button"
         style={{ marginBottom: "16px" }}
-        onClick={() => navigate("/users")}
+        onClick={onLogout}
       >
-        🔍 Find Users
+        Logout
       </button>
 
       <h2 className="section-title">My Joined Rides</h2>
@@ -107,8 +105,7 @@ export default function Profile({ currentUserId }) {
           <p className="empty-message">You have not joined any rides yet.</p>
         )}
       </section>
-
-      <h2 className="section-title">My Created Rides</h2>
+      <h2 className="section-title created-rides-heading"> My Created Rides </h2>
       <section className="post-list">
         {loading ? (
           <p className="empty-message">Loading rides...</p>

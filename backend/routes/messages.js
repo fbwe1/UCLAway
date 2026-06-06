@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const supabase = require('../supabaseClient');
+const supabase = require('../supabaseclient');
 
 // ─── GET all conversations for a user ────────────────────────────────────────
 router.get('/conversations', async (req, res) => {

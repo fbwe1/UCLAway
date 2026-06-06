@@ -5,7 +5,16 @@ function Messages({ currentUserId, socket }) {
   const navigate = useNavigate();
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
-
+  
+  //expired token = redirect to login
+  const handleUnauthenticated = (res) => {
+    //unauthorized case
+    if (res.status === 401) {
+      localStorage.removeItem("token");
+      window.location.reload();
+      return true;}
+    return false;
+  };
   const fetchConversations = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -15,6 +24,8 @@ function Messages({ currentUserId, socket }) {
         `http://localhost:3001/api/messages/conversations?userId=${currentUserId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      if (handleUnauthenticated(res)){
+        return;}
       const data = await res.json();
       if (res.ok) setConversations(data);
     } catch {
@@ -42,72 +53,64 @@ function Messages({ currentUserId, socket }) {
   };
 
   return (
-    <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-      <h2 style={{ marginBottom: '16px' }}>Messages</h2>
-      {loading ? (
-        <p>Loading...</p>
-      ) : conversations.length === 0 ? (
-        <div style={{ textAlign: 'center', color: '#888', marginTop: '40px' }}>
-          <p style={{ fontSize: '16px' }}>No conversations yet.</p>
-          <p style={{ fontSize: '13px' }}>Click "Message" on a ride to start one.</p>
-        </div>
-      ) : (
-        conversations.map(conv => {
-          const hasUnread = conv.unread_count > 0;
-          const preview = conv.latest_message?.content || 'No messages yet';
-          const previewTruncated = preview.length > 50 ? preview.slice(0, 50) + '...' : preview;
+    <main className="page">
+      <section className="page-header">
+        <h1>Messages</h1>
+        <p>View your ride conversations and recent messages.</p>
+      </section>
 
-          return (
-            <div
-              key={conv.id}
-              onClick={() => navigate(`/messages/${conv.id}`)}
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '14px 16px',
-                borderRadius: '8px',
-                border: `1px solid ${hasUnread ? '#4CAF50' : '#ccc'}`,
-                marginBottom: '10px',
-                cursor: 'pointer',
-                backgroundColor: hasUnread ? '#f0fff0' : 'transparent',
-              }}
-              onMouseEnter={e => e.currentTarget.style.borderColor = '#4CAF50'}
-              onMouseLeave={e => e.currentTarget.style.borderColor = hasUnread ? '#4CAF50' : '#ccc'}
-            >
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontWeight: hasUnread ? 'bold' : 'normal', fontSize: '15px' }}>
-                    👤 {conv.other_username}
-                  </span>
-                  {hasUnread && (
-                    <span style={{
-                      backgroundColor: '#4CAF50', color: 'white',
-                      borderRadius: '10px', padding: '1px 7px',
-                      fontSize: '11px', fontWeight: 'bold'
-                    }}>
-                      {conv.unread_count} new
-                    </span>
-                  )}
+      {loading ? (
+        <p className="empty-message">Loading conversations...</p>
+      ) : conversations.length === 0 ? (
+        <section className="empty-message">
+          <strong>No conversations yet.</strong>
+          <p>Click “Message” on a ride or user profile to start one.</p>
+        </section>
+      ) : (
+        <section className="post-list">
+          {conversations.map((conv) => {
+            const hasUnread = conv.unread_count > 0;
+            const preview = conv.latest_message?.content || 'No messages yet';
+            const previewTruncated =
+              preview.length > 60 ? preview.slice(0, 60) + '...' : preview;
+
+            return (
+              <article
+                key={conv.id}
+                className={`conversation-card ${hasUnread ? 'unread' : ''}`}
+                onClick={() => navigate(`/messages/${conv.id}`)}
+              >
+                <div className="small-avatar">
+                  {(conv.other_username || '?').charAt(0).toUpperCase()}
                 </div>
-                <p style={{
-                  margin: '4px 0 0', fontSize: '13px',
-                  color: hasUnread ? '#333' : '#888',
-                  fontWeight: hasUnread ? '500' : 'normal'
-                }}>
-                  {previewTruncated}
-                </p>
-              </div>
-              {conv.latest_message && (
-                <span style={{ fontSize: '11px', color: '#aaa', marginLeft: '12px', whiteSpace: 'nowrap' }}>
-                  {formatTime(conv.latest_message.created_at)}
-                </span>
-              )}
-            </div>
-          );
-        })
+
+                <div className="conversation-info">
+                  <div className="conversation-top">
+                    <h2>{conv.other_username}</h2>
+
+                    {conv.latest_message && (
+                      <span className="conversation-time">
+                        {formatTime(conv.latest_message.created_at)}
+                      </span>
+                    )}
+                  </div>
+
+                  <p className={hasUnread ? 'conversation-preview unread-text' : 'conversation-preview'}>
+                    {previewTruncated}
+                  </p>
+                </div>
+
+                {hasUnread && (
+                  <span className="unread-badge">
+                    {conv.unread_count}
+                  </span>
+                )}
+              </article>
+            );
+          })}
+        </section>
       )}
-    </div>
+    </main>
   );
 }
 

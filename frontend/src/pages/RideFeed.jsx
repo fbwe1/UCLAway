@@ -2,8 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import RideCard from '../components/RideCard';
 
-// Socket is passed in from App.jsx — only used if provided, falls back to local
-// TODO: remove local socket creation once all pages receive socket from App.jsx
 const buildRidesUrl = (filters = {}) => {
   const params = new URLSearchParams();
 
@@ -48,7 +46,15 @@ function RideFeed({ currentUserId, socket }) {
         Authorization: `Bearer ${token}`,
       },
     })
-      .then(res => res.json())
+      .then(res => {
+        // expired token = redirect to login
+        if (res.status === 401) {
+          localStorage.removeItem("token");
+          window.location.reload();
+          return;
+        }
+       return res.json()
+      })
       .then(data => {
         setRides(Array.isArray(data) ? data : []);
         setLoading(false);

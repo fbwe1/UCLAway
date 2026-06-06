@@ -14,6 +14,15 @@ function CreateRide({ currentUserId }) {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
+  //expired token = redirect to login
+  const handleUnauthenticated = (res) => {
+    //unauthorized case
+    if (res.status === 401) {
+      localStorage.removeItem("token");
+      window.location.reload();
+      return true;}
+    return false;
+  };
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -53,7 +62,9 @@ function CreateRide({ currentUserId }) {
           return_time: isRoundTrip ? new Date(returnTime).toISOString() : null
         })
       });
-
+      if (handleUnauthenticated(response)){
+        return;
+      }
       const data = await response.json();
 
       if (!response.ok) {

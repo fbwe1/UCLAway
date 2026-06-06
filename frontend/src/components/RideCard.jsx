@@ -40,7 +40,14 @@ const RideCard = ({ ride, currentUserId, onUpdate }) => {
       timeZone: 'America/Los_Angeles' // TODO: get from user profile after auth merges
     });
   };
-
+  const handleUnauthenticated = (res) => {
+    //unauthorized case
+    if (res.status === 401) {
+      localStorage.removeItem("token");
+      window.location.reload();
+      return true;}
+    return false;
+  };
   const departureTime = formatDateTime(ride.departure_time);
   const returnTime = formatDateTime(ride.return_time);
   const postedTime = formatDateTime(ride.created_at);
@@ -65,6 +72,9 @@ const RideCard = ({ ride, currentUserId, onUpdate }) => {
          },
         body: JSON.stringify({ userId: currentUserId })
       });
+      if (handleUnauthenticated(response)){
+        return;
+      }
       const data = await response.json();
       if (!response.ok) {
         setErrorMsg(data.error || 'Failed to remove ride');
