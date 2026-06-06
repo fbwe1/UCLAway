@@ -51,7 +51,15 @@ Our project is a carpooling web application specifically for UCLA students to ma
 `SUPABASE_SERVICE_ROLE_KEY` = your_supabase_API_key
 
 # Tests
-([ToDo: add steps here for how to run tests, functionalities tested, etc.]) 
+On windows
+
+```powershell
+cd backend
+$env:NODE_ENV="test"; node server.js
+cd frontend
+npm run dev
+$env:NODE_ENV="test"; npx playwright test --headed
+```
 
 ### Features
 - Login and Sign-up: Only UCLA emails, bcrypt password hashing
@@ -84,6 +92,11 @@ Prompt: What potential problems should I watch for when merging or rebasing my f
 
 - The test suite for this project was partially AI generated using Claude Sonnet 4.7 model.
 Prompt: Help me write a partial test suite for my rideshare app backend. I need tests for ride creation, filtering by location/date/seats, joining and leaving rides, and follow/unfollow behavior. Please generate a readable starting point that I can edit and verify manually.
+
+
+- The test in test_rides.py are also AI generated using Gemini 3.1 Pro
+Prompt: Can you test the join ride, leave ride, remove ride, remove rider feature using a python file test_rides.py with asserts. Test that if two people join a ride at the same time only one is able to join. Test that a removed rider can't join again. Test that only the creator can delete there own rides. Test that you cant join a full ride and that rides update. Also create other tests based on these code snippets.
+
 
 Teammate specific in depth AI usage will be reflected in personal final project reports & AI assisted code is marked within the repository. 
 
