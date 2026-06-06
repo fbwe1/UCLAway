@@ -1,5 +1,3 @@
-# UCLAway!
-
 <img src="frontend/public/logo.svg" alt="UCLAway Logo" width="200" />
 
 ## Table of Contents
