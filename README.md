@@ -1,4 +1,6 @@
-# UCLAway
+# UCLAway!
+
+<img src="frontend/public/logo.svg" alt="UCLAway Logo" width="200" />
 
 ## Table of Contents
 
@@ -17,7 +19,13 @@
 - [Credits](#credits)
 
 ## Project Overview
-Our project is a carpooling web application specifically for UCLA students to make ride-sharing easier, safer, and more efficient. Users can create public ride posts that include important details such as date, time range, pickup location, destination, and the number of available seats. Other students can view these posts and join rides with open seats. Every ride post also shows its current status, such as “missing 2” or “full,” so users can quickly see availability. In addition, each user has a profile page containing contact information, ride history, and the number of rides they have completed. [DM] functionality information. Overall, this system provides UCLA students with a convenient way to coordinate transportation and connect with other students traveling in the same direction.
+# Our motivation: 
+Getting places in LA from UCLA is harder than it should be. Currently, students rely on scattered Discord servers, facebook groups, and group chats to find rides. There is no central hub to both search and post a carpool listing. This makes the process inefficient, especially for someone who needs to find a ride quickly. Additionally, sharing a car with a random person from the internet can be risky. Sharing with a verified UCLA student is much more reliable and comfortable. Save money, time, and pain with our solution, UCLAway. Built by UCLA students, for UCLA students. 
+
+# UCLAway, our solution 
+Our project is a carpooling web application specifically for UCLA students to make ride-sharing easier, safer, and more efficient. Users can create public ride posts that include important details such as date, time range, pickup location, destination, and the number of available seats. Other users can view these posts on the ride feed and join rides with open seats. Every ride post also shows its current status, such as “missing 2” or “full,” so users can quickly see availability. In addition, each user has a profile page containing contact information, ride history, and the number of rides they have completed. Users can edit, and delete rides that they have published, along with the ability to remove riders from their own postings. Each user has a username, and can message a user either through clicking the users detail on a ride page, or searching their username. Users are able to follow each other, and on their profile page have both a follower and following count. After a ride has expired (its date has passed), it will automatically be removed from the system. So that the feed is easily navigable, users can search rides for criteria such as destination, and with the advanced filter search for criteria such as seat availability, time/date, etc. 
+UCLAway only allows users with UCLA domain emails to sign-up for an account, ensuring that only UCLA affiliated students and members will be on the platform, providing increased trust for users.
+Overall, our system provides UCLA students with a convenient way to coordinate transportation and connect with other students traveling in the same direction.
 
 A tutorial with these functionalities can be viewed from this link : https://drive.google.com/file/d/1t-duXFfu2f6cPoPEby-HBpNJEKAFwzhT/view?usp=sharing
 
@@ -71,8 +79,6 @@ A tutorial with these functionalities can be viewed from this link : https://dri
     - Components: JWT secret key (base-64 encoded), unique user id, student's UCLA email
     - Generated upon login and stored in browser localStorage (outside of the backend server). Token deleted upon logout. Also, since the JWT expires after 1 hour, the user is logged out upon expiration. 
 
-Feel free to provide your input or feedback to our project!
-
 ### AI Usage Disclaimer
 The following were developed with AI assistance. 
 
@@ -91,6 +97,10 @@ Teammate specific in depth AI usage will be reflected in personal final project 
 
 ### Credits
 Built by the UCLAway team for CS35L Final Project.
+
+Our Team Contributors: Pranav Bodapati, Thomas Lien, Nicole Weimar, Bowen Fu, Haotong (Isabella) Hu
+
+Feel free to provide your input or feedback to our project!
 
 
 
