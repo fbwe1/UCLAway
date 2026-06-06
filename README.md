@@ -85,6 +85,16 @@ $env:NODE_ENV="test"; npx playwright test --headed
     - Components: JWT secret key (base-64 encoded), unique user id, student's UCLA email
     - Generated upon login and stored in browser localStorage (outside of the backend server). Token deleted upon logout. Also, since the JWT expires after 1 hour, the user is logged out upon expiration. 
 
+## UML Diagrams
+
+### Use_Case_Diagram
+
+![Use_Case_Diagram](images/Use_Case_Diagram.png)
+
+### Sequence_Diagram
+
+![Sequence_Diagram](images/Sequence_Diagram.png)
+
 ### AI Usage Disclaimer
 The following were developed with AI assistance. 
 
