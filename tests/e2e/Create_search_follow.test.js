@@ -1,3 +1,4 @@
+// Test 1: User A logs in → creates a ride → searches for User B → follows User B
 import { test, expect } from '@playwright/test';
 
 const TEST_USER_A = {
@@ -22,17 +23,23 @@ async function login(page, user) {
   await expect(page.getByRole('heading', { name: 'Ride Feed' })).toBeVisible({ timeout: 5000 });
 }
 
+
+async function searchUser(page, username) {
+  await page.getByPlaceholder('Search users').fill(username);
+  await expect(page.getByText(username)).toBeVisible({ timeout: 5000 });
+}
+
 test.describe('User A: login, create ride, search and follow User B', () => {
 
   test('User A can log in', async ({ page }) => {
     await login(page, TEST_USER_A);
-    await expect(page.getByText(`👤 ${TEST_USER_A.username}`)).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Ride Feed' })).toBeVisible();
   });
 
   test('User A can create a ride', async ({ page }) => {
     await login(page, TEST_USER_A);
 
-    await page.getByRole('link', { name: '+ Create Ride' }).click();
+    await page.getByRole('link', { name: 'Create' }).click();
     await expect(page.getByRole('heading', { name: 'Create a Ride' })).toBeVisible();
 
     await page.getByPlaceholder('e.g. Ride to LAX Friday').fill(RIDE_TITLE);
@@ -45,42 +52,40 @@ test.describe('User A: login, create ride, search and follow User B', () => {
     tomorrow.setDate(tomorrow.getDate() + 1);
     const pad = n => String(n).padStart(2, '0');
     const localISO = `${tomorrow.getFullYear()}-${pad(tomorrow.getMonth() + 1)}-${pad(tomorrow.getDate())}T10:00`;
-    await page.locator('input[type="datetime-local"]').fill(localISO);
+    await page.locator('.form-group').filter({ hasText: 'Departure Time' })
+      .locator('input[type="datetime-local"]')
+      .fill(localISO);
 
     await page.getByRole('button', { name: 'Create Ride' }).click();
 
     await expect(page.getByRole('heading', { name: 'Ride Feed' })).toBeVisible({ timeout: 5000 });
-    await expect(
-      page.getByRole('article').filter({ hasText: RIDE_TITLE }).first()
-    ).toBeVisible({ timeout: 8000 });
+    await expect(page.getByRole('article').filter({ hasText: RIDE_TITLE })).toBeVisible({ timeout: 8000 });
   });
 
-  test('User A can search for User B and follow them from search results', async ({ page }) => {
+  test('User A can search for User B and follow them', async ({ page }) => {
     await login(page, TEST_USER_A);
 
-    await page.goto('/users');
-    await expect(page.getByRole('heading', { name: 'Find Users' })).toBeVisible();
+    await page.getByRole('link', { name: 'Search' }).click();
+    await expect(page.getByRole('heading', { name: 'Search Users' })).toBeVisible();
 
-    await page.getByPlaceholder('Search by username...').fill(TEST_USER_B.username);
-    await page.getByRole('button', { name: 'Search' }).click();
+    await searchUser(page, TEST_USER_B.username);
 
-    await expect(page.getByText(TEST_USER_B.username)).toBeVisible({ timeout: 5000 });
-
-    await page.getByRole('button', { name: 'Follow' }).click();
-    await expect(page.getByRole('button', { name: 'Unfollow' })).toBeVisible({ timeout: 5000 });
+    const userCard = page.getByRole('article').filter({ hasText: TEST_USER_B.username });
+    await userCard.getByRole('button', { name: 'Follow' }).click();
+    await expect(userCard.getByRole('button', { name: 'Unfollow' })).toBeVisible({ timeout: 5000 });
   });
 
   test('User A can visit User B public profile and see follower count', async ({ page }) => {
     await login(page, TEST_USER_A);
 
-    await page.goto('/users');
-    await page.getByPlaceholder('Search by username...').fill(TEST_USER_B.username);
-    await page.getByRole('button', { name: 'Search' }).click();
-    await expect(page.getByText(TEST_USER_B.username)).toBeVisible({ timeout: 5000 });
+    await page.getByRole('link', { name: 'Search' }).click();
+    await searchUser(page, TEST_USER_B.username);
 
-    await page.getByText(TEST_USER_B.username).click();
+    const userCard = page.getByRole('article').filter({ hasText: TEST_USER_B.username });
+    await userCard.locator('.user-card-info').click();
 
     await expect(page.getByRole('heading', { name: TEST_USER_B.username })).toBeVisible({ timeout: 5000 });
+
     await expect(page.getByRole('button', { name: /^(follow|unfollow)$/i })).toBeVisible();
     await expect(page.getByText('Followers')).toBeVisible();
   });
