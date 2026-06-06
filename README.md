@@ -19,6 +19,8 @@
 ## Project Overview
 Our project is a carpooling web application specifically for UCLA students to make ride-sharing easier, safer, and more efficient. Users can create public ride posts that include important details such as date, time range, pickup location, destination, and the number of available seats. Other students can view these posts and join rides with open seats. Every ride post also shows its current status, such as “missing 2” or “full,” so users can quickly see availability. In addition, each user has a profile page containing contact information, ride history, and the number of rides they have completed. [DM] functionality information. Overall, this system provides UCLA students with a convenient way to coordinate transportation and connect with other students traveling in the same direction.
 
+A tutorial with these functionalities can be viewed from this link : https://drive.google.com/file/d/1t-duXFfu2f6cPoPEby-HBpNJEKAFwzhT/view?usp=sharing
+
 ## Tech Stack
 ### Frontend 
 - React.js
