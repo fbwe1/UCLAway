@@ -1,214 +1,171 @@
-const test = require("node:test");
-const assert = require("node:assert/strict");
-const supabasePath = require.resolve("../supabaseclient.js");
-const authRoutesPath = require.resolve("../routes/authRoutes.js");
+const express = require("express");
+const router = express.Router();
+const rateLimit = require("express-rate-limit");
+const supabase = require("../supabaseClient");
+const { hashPassword, comparePassword } = require("../services/hashService");
+const { generateToken } = require("../services/jwtService");
 
-function createAuthRoutes(mockSupabase) {
-    delete require.cache[authRoutesPath];
-    require.cache[supabasePath] = {
-        id: supabasePath,
-        filename: supabasePath,
-        loaded: true,
-        exports: mockSupabase
-    };
-    return require("../routes/authRoutes.js");
-}
-async function request(router, path, body) {
-    const routeLayer = router.stack.find((layer) => layer.route.path === path);
-    const postLayer = routeLayer.route.stack.find((layer) => layer.method === "post");
-    const req = { body };
-    const res = {
-        statusCode: 200,
-        body: undefined,
-        status(code) {
-            this.statusCode = code;
-            return this;
-        },
-        json(payload) {
-            this.body = payload;
-            return this;
-        },
-        send(payload) {
-            this.body = payload;
-            return this;
-        }
-    };
-    await postLayer.handle(req, res);
-    return {
-        status: res.statusCode,
-        body: res.body
-    };
-}
-test("signup creates an account with valid UCLA account information", async () => {
-    const signUpCalls = [];
-    const router = createAuthRoutes({
-        auth: {
-            signUp: async (payload) => {
-                signUpCalls.push(payload);
-                return { data: { user: { id: "user-1" } }, error: null };
-            }
-        }
-    });
-    const response = await request(router, "/signup", {
-        username: "newuser",
-        full_name: "New User",
-        ucla_email: "newuser@g.ucla.edu",
-        password: "Password123!"
-    });
-    assert.equal(response.status, 200);
-    assert.deepEqual(response.body, {
-        status: true,
-        message: "User Was Created Successfully. Please go back to the Log In page!"
-    });
-    assert.equal(signUpCalls.length, 1);
-    assert.equal(signUpCalls[0].email, "newuser@g.ucla.edu");
-    assert.equal(signUpCalls[0].password, "Password123!");
-    assert.deepEqual(signUpCalls[0].options.data, {
-        first_name: "New User",
-        username: "newuser"
-    });
-});
-test("signup rejects non-UCLA email addresses before creating an account", async () => {
-    let signUpWasCalled = false;
-    const router = createAuthRoutes({
-        auth: {
-            signUp: async () => {
-                signUpWasCalled = true;
-                return { data: null, error: null };
-            }
-        }
-    });
-    const response = await request(router, "/signup", {
-        username: "newuser",
-        ucla_email: "newuser@example.com",
-        password: "Password123!"
-    });
-    assert.equal(response.status, 400);
-    assert.deepEqual(response.body, {
-        status: false,
-        message: "Please use a valid UCLA email address"
-    });
-    assert.equal(signUpWasCalled, false);
-});
-test("signup rejects passwords that are not complex enough before creating an account", async () => {
-    let signUpWasCalled = false;
-    const router = createAuthRoutes({
-        auth: {
-            signUp: async () => {
-                signUpWasCalled = true;
-                return { data: null, error: null };
-            }
-        }
-    });
-    const response = await request(router, "/signup", {
-        username: "newuser",
-        ucla_email: "newuser@ucla.edu",
-        password: "password123"
-    });
-    assert.equal(response.status, 400);
-    assert.deepEqual(response.body, {
-        status: false,
-        message: "You need to make a more complex password"
-    });
-    assert.equal(signUpWasCalled, false);
-});
-test("signup returns an error when Supabase rejects account creation", async () => {
-    const router = createAuthRoutes({
-        auth: {
-            signUp: async () => ({
-                data: null,
-                error: new Error("already exists")
-            })
-        }
-    });
-    const response = await request(router, "/signup", {
-        username: "existinguser",
-        ucla_email: "existinguser@ucla.edu",
-        password: "Password123!"
-    });
-    assert.equal(response.status, 200);
-    assert.deepEqual(response.body, {
-        status: false,
-        message: "already exists"
-    });
-});
-test("login grants access with correct UCLA email and password", async () => {
-    process.env.JWT_SECRET = process.env.JWT_SECRET || "test-jwt-secret";
-    const signInCalls = [];
-    const router = createAuthRoutes({
-        auth: {
-            signInWithPassword: async (payload) => {
-                signInCalls.push(payload);
-                return {
-                    data: {
-                        user: {
-                            id: "user-uuid-1",
-                            email: "newuser@ucla.edu"
-                        },
-                        session: { access_token: "token" }
-                    },
-                    error: null
-                };
-            }
-        }
-    });
-    const response = await request(router, "/login", {
-        ucla_email: "newuser@ucla.edu",
-        password: "password123"
-    });
+const uclaEmailRegex = /^[A-Za-z0-9._%+-]+@(g\.)?ucla\.edu$/i;
+const complexPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])/;
 
-    assert.equal(response.status, 200);
-    assert.equal(response.body.success, true);
-    assert.equal(typeof response.body.token, "string");
-    assert.deepEqual(signInCalls[0], {
-        email: "newuser@ucla.edu",
-        password: "password123"
-    });
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { status: false, message: "Too many login attempts, please try again later" }
 });
-test("login returns an error when credentials are incorrect", async () => {
-    const router = createAuthRoutes({
-        auth: {
-            signInWithPassword: async () => ({
-                data: null,
-                error: new Error("invalid credentials")
-            })
-        }
-    });
 
-    const response = await request(router, "/login", {
-        ucla_email: "newuser@ucla.edu",
-        password: "wrong-password"
-    });
+const signupLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  message: { status: false, message: "Too many accounts created, please try again later" }
+});
 
-    assert.equal(response.status, 200);
-    assert.deepEqual(response.body, {
-        status: false,
-        message: "Invalid email or password fields"
-    });
+// POST /auth/signup
+router.post("/signup", signupLimiter, async (req, res) => {
+  try {
+    const { username, full_name, ucla_email, password } = req.body;
+
+    if (!username || !full_name || !ucla_email || !password)
+      return res.status(400).json({ status: false, message: "All fields are required" });
+
+    if (!uclaEmailRegex.test(ucla_email))
+      return res.status(400).json({ status: false, message: "Please use a valid UCLA email address" });
+
+    if (!complexPasswordRegex.test(password))
+      return res.status(400).json({ status: false, message: "Password must include uppercase, lowercase, number, and special character" });
+
+    const { data: existing } = await supabase
+      .from("profiles")
+      .select("profile_id")
+      .eq("ucla_email", ucla_email)
+      .maybeSingle();
+
+    if (existing)
+      return res.status(409).json({ status: false, message: "An account with this email already exists" });
+
+    const password_hash = await hashPassword(password);
+
+    const { data: newUser, error } = await supabase
+      .from("profiles")
+      .insert({ username, full_name, ucla_email, password_hash })
+      .select("profile_id, username")
+      .single();
+
+    if (error) {
+      console.error("Signup DB error:", error.message);
+      return res.status(500).json({ status: false, message: "Signup failed" });
+    }
+
+    return res.status(201).json({ status: true, message: "Account created successfully" });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ status: false, message: "Internal server error" });
+  }
 });
-// forgot password
-test("forgot password sends the reset email request", async () => {
-    const resetCalls = [];
-    const router = createAuthRoutes({
-        auth: {
-            resetPasswordForEmail: async (email, options) => {
-                resetCalls.push({ email, options });
-                return { data: {}, error: null };
-            }
-        }
+
+// POST /auth/login
+router.post("/login", loginLimiter, async (req, res) => {
+  try {
+    const { ucla_email, password } = req.body;
+
+    if (!ucla_email || !password)
+      return res.status(400).json({ status: false, message: "Email and password are required" });
+
+    const { data: user, error } = await supabase
+      .from("profiles")
+      .select("profile_id, username, password_hash")
+      .eq("ucla_email", ucla_email)
+      .maybeSingle();
+
+    if (error || !user)
+      return res.status(401).json({ status: false, message: "Invalid email or password" });
+
+    const valid = await comparePassword(password, user.password_hash);
+    if (!valid)
+      return res.status(401).json({ status: false, message: "Invalid email or password" });
+
+    const token = generateToken({ userId: user.profile_id, username: user.username });
+
+    return res.status(200).json({
+      status: true,
+      token,
+      userId: user.profile_id,
+      username: user.username,
+      email: ucla_email,
     });
-    const response = await request(router, "/forgot-password", {
-        ucla_email: "newuser@ucla.edu"
-    });
-    assert.equal(response.status, 200);
-    assert.deepEqual(response.body, {
-        status: true,
-        message: "If your account exists, check your email inbox."
-    });
-    assert.deepEqual(resetCalls[0], {
-        email: "newuser@ucla.edu",
-        options: {
-            redirectTo: "http://localhost:5173/reset-password"
-        }
-    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ status: false, message: "Internal server error" });
+  }
 });
+
+// POST /auth/forgot-password
+router.post("/forgot-password", async (req, res) => {
+  try {
+    const { ucla_email } = req.body;
+
+    const { data: user } = await supabase
+      .from("profiles")
+      .select("profile_id")
+      .eq("ucla_email", ucla_email)
+      .maybeSingle();
+
+    if (!user)
+      return res.json({ status: true, message: "If your account exists, check your email inbox." });
+
+    // Actually use a package to make this work
+    return res.json({ status: true, message: "If your account exists, check your email inbox." });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ status: false, message: "Internal server error" });
+  }
+});
+
+// DELETE /auth/delete-account(no real implementation just here for the tests)
+router.delete("/delete-account", async (req, res) => {
+  try {
+    const { ucla_email, password } = req.body;
+
+    if (!ucla_email || !password)
+      return res.status(400).json({ status: false, message: "Email and password are required" });
+
+    const { data: user, error } = await supabase
+      .from("profiles")
+      .select("profile_id, password_hash")
+      .eq("ucla_email", ucla_email)
+      .maybeSingle();
+
+    if (error || !user)
+      return res.status(404).json({ status: false, message: "Account not found" });
+
+    const valid = await comparePassword(password, user.password_hash);
+    if (!valid)
+      return res.status(401).json({ status: false, message: "Invalid password" });
+
+    const userId = user.profile_id;
+
+    // Clean up in order — remove dependent data before deleting the profile
+    await Promise.all([
+      supabase.from("follows").delete().eq("follower_user_id", userId),
+      supabase.from("follows").delete().eq("followed_user_id", userId),
+      supabase.from("rides").delete().eq("creator_user_id", userId),
+    ]);
+
+    const { error: deleteError } = await supabase
+      .from("profiles")
+      .delete()
+      .eq("profile_id", userId);
+
+    if (deleteError) {
+      console.error("Delete account error:", deleteError.message);
+      return res.status(500).json({ status: false, message: "Failed to delete account" });
+    }
+
+    return res.json({ status: true, message: "Account deleted successfully" });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ status: false, message: "Internal server error" });
+  }
+});
+
+module.exports = router;

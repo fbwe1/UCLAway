@@ -9,14 +9,14 @@ const uclaEmailRegex = /^[A-Za-z0-9._%+-]+@(g\.)?ucla\.edu$/i;
 const complexPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])/;
 
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10,                   // max 10 attempts per window
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === 'test' ? 1000 : 10,
   message: { status: false, message: "Too many login attempts, please try again later" }
 });
 
 const signupLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 5,                    // max 5 signups per hour per IP
+  windowMs: 60 * 60 * 1000,
+  max: process.env.NODE_ENV === 'test' ? 1000 : 5,
   message: { status: false, message: "Too many accounts created, please try again later" }
 });
 
@@ -99,7 +99,7 @@ router.post("/login", loginLimiter, async (req, res) => {
   }
 });
 
-// POST /auth/forgot-password
+// POST /auth/forgot-password (kind of useless right now)
 router.post("/forgot-password", async (req, res) => {
   try {
     const { ucla_email } = req.body;
@@ -113,9 +113,55 @@ router.post("/forgot-password", async (req, res) => {
     if (!user)
       return res.json({ status: true, message: "If your account exists, check your email inbox." });
 
-    // TODO: generate reset token and send email via nodemailer/Resend
-
+    // No forgot password email sent
     return res.json({ status: true, message: "If your account exists, check your email inbox." });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ status: false, message: "Internal server error" });
+  }
+});
+
+// DELETE /auth/delete-account Not used in the frontend can be added later only here for deleting the account for global teardown for e2e tests
+router.delete("/delete-account", async (req, res) => {
+  try {
+    const { ucla_email, password } = req.body;
+
+    if (!ucla_email || !password)
+      return res.status(400).json({ status: false, message: "Email and password are required" });
+
+    const { data: user, error } = await supabase
+      .from("profiles")
+      .select("profile_id, password_hash")
+      .eq("ucla_email", ucla_email)
+      .maybeSingle();
+
+    if (error || !user)
+      return res.status(404).json({ status: false, message: "Account not found" });
+
+    const valid = await comparePassword(password, user.password_hash);
+    if (!valid)
+      return res.status(401).json({ status: false, message: "Invalid password" });
+
+    const userId = user.profile_id;
+
+    // Clean up dependent data before deleting the profile
+    await Promise.all([
+      supabase.from("follows").delete().eq("follower_user_id", userId),
+      supabase.from("follows").delete().eq("followed_user_id", userId),
+      supabase.from("rides").delete().eq("creator_user_id", userId),
+    ]);
+
+    const { error: deleteError } = await supabase
+      .from("profiles")
+      .delete()
+      .eq("profile_id", userId);
+
+    if (deleteError) {
+      console.error("Delete account error:", deleteError.message);
+      return res.status(500).json({ status: false, message: "Failed to delete account" });
+    }
+
+    return res.status(200).json({ status: true, message: "Account deleted successfully" });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ status: false, message: "Internal server error" });
